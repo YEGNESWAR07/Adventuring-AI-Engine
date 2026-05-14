@@ -203,7 +203,6 @@ adventuring-ai-engine/
 │   ├── lore_db/                # ChromaDB persistent storage (auto-generated)
 │   └── campaign.json           # Campaign state (auto-generated)
 ├── src/
-│   ├── __init__.py
 │   ├── models.py               # Pydantic schemas (WorldData, RoomData, NPCData, LoreData)
 │   ├── engine.py               # Core logic (Game, Player, World, CampaignManager)
 │   ├── lore_manager.py         # RAG engine (ChromaDB + embeddings)
