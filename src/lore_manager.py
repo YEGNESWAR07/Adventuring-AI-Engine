@@ -1,3 +1,14 @@
+import os
+import warnings
+
+# Suppress TensorFlow/Keras noise before they load
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'    # ERROR-level only
+warnings.filterwarnings('ignore', category=FutureWarning)
+
+import logging
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
+
 import chromadb
 from sentence_transformers import SentenceTransformer
 from typing import List, Dict, Optional
