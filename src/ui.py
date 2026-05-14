@@ -12,19 +12,22 @@ WELCOME_TEXT = (
     "[bold yellow]║      WELCOME, ADVENTURER!    ║[/]\n"
     "[bold yellow]╚══════════════════════════════╝[/]\n\n"
     "[bold]Available Commands:[/]\n"
-    "  [green]n[/] [green]s[/] [green]e[/] [green]w[/]        Move in a direction\n"
-    "  [green]look[/]         Examine the room around you\n"
-    "  [green]inventory[/] ([green]i[/]) Show your carried items\n"
-    "  [green]examine <item>[/] Describe an item in detail\n"
-    "  [green]use <item>[/]    Use an item (heal, light, etc.)\n"
-    "  [green]search[/]       Search for hidden items\n"
-    "  [green]pickup <item>[/] Pick up an item\n"
-    "  [green]drop <item>[/]   Drop an item from inventory\n"
-    "  [green]attack[/]       Fight enemies in the room\n"
-    "  [green]save[/]         Save your progress\n"
-    "  [green]load[/]         Load saved game\n"
-    "  [green]help[/]         Show this command list\n"
-    "  [green]quit[/]         Exit the game\n\n"
+    "  [green]n[/] [green]s[/] [green]e[/] [green]w[/] [green]ne[/] [green]nw[/]    Move\n"
+    "  [green]look[/]           Examine the room\n"
+    "  [green]inventory[/] ([green]i[/])   Show carried items\n"
+    "  [green]examine <item>[/]  Describe an item\n"
+    "  [green]use <item>[/]      Use an item\n"
+    "  [green]equip <item>[/]    Equip weapon/armor/accessory\n"
+    "  [green]search[/]         Search for hidden items\n"
+    "  [green]talk <npc>[/]     Talk to a character\n"
+    "  [green]trade <give> <get>[/] Trade with merchant\n"
+    "  [green]pickup <item>[/]   Pick up an item\n"
+    "  [green]drop <item>[/]     Drop an item\n"
+    "  [green]attack[/]         Fight enemies\n"
+    "  [green]save[/]           Save progress\n"
+    "  [green]load[/]           Load game\n"
+    "  [green]help[/]           Show this list\n"
+    "  [green]quit[/]           Exit\n\n"
     "[dim]Type any command above to begin your adventure...[/dim]"
 )
 
@@ -37,10 +40,16 @@ def get_player_state(game: Game) -> dict:
     }
 
 
-def get_npc_info(npc_room: str, player_room: str) -> str:
-    if npc_room == player_room:
-        return f"The {NPC_NAME} is HERE with you!"
-    return f"The {NPC_NAME} was last seen in {npc_room}."
+def get_npc_info(game: Game, player_room: str) -> str:
+    here = [n for n in game.npcs if n.current_room == player_room and n.role != "merchant"]
+    if here:
+        names = ", ".join(n.name for n in here)
+        return f"{names} {'are' if len(here) > 1 else 'is'} here with you."
+    nearby = [n for n in game.npcs if n.role != "merchant"]
+    if nearby:
+        rooms = set(n.current_room for n in nearby)
+        return f"You sense presences in: {', '.join(sorted(rooms)[:2])}."
+    return "You feel alone in the darkness."
 
 
 def build_title() -> Panel:
@@ -50,7 +59,7 @@ def build_title() -> Panel:
     )
 
 
-def build_stats_minimap_panel(game: Game, npc_room: str) -> Panel:
+def build_stats_minimap_panel(game: Game) -> Panel:
     hp = game.player.health
     filled = "█" * (hp // 5)
     empty = "░" * ((100 - hp) // 5)
@@ -68,11 +77,12 @@ def build_stats_minimap_panel(game: Game, npc_room: str) -> Panel:
     room_name = game.current_room.name
     npc_status = ""
     npc_alert = ""
-    if npc_room == room_name:
-        npc_status = f"\n  {NPC_NAME}: [bold red]HERE[/]"
-        npc_alert = " [bold red]⚠[/]"
-    else:
-        npc_status = f"\n  {NPC_NAME}: [cyan]{npc_room}[/]"
+    room_npcs = game.get_npcs_in_room(room_name)
+
+    for n in room_npcs:
+        role_colors = {"merchant": "green", "oracle": "magenta", "trickster": "red", "guide": "cyan", "guardian": "yellow", "bard": "blue"}
+        col = role_colors.get(n.role, "white")
+        npc_status += f"\n  [{col}]◆ {n.name}[/]"
 
     mood = "AGGRESSIVE" if game.is_playing_aggressively() else "Stealth"
     mood_style = "red" if game.is_playing_aggressively() else "green"
@@ -83,14 +93,19 @@ def build_stats_minimap_panel(game: Game, npc_room: str) -> Panel:
         effects_line = "\n" + "  ".join(effects)
 
     inv_count = len(game.player.inventory)
-    inv_display = f"\n  Items: [bold]{inv_count}[/]"
+    eq = game.player.equipment
+    eq_text = f"  ATK:{game.player.attack_bonus} DEF:{game.player.defense_bonus}"
+    if eq["weapon"]:
+        eq_text += f" ⚔{eq['weapon']}"
+    if eq["armor"]:
+        eq_text += f" 🛡{eq['armor']}"
 
     stats = (
-        f"      HP: {hp}/100  [{hp_style}]{bar}[/]\n"
+        f"      HP: {hp}/{game.player.max_hp}  [{hp_style}]{bar}[/]\n"
         f"    Turn: [bold]{game.turn_count}[/]\n"
         f"    Room: [bright_cyan]{room_name}[/]{npc_alert}\n"
-        f"    Mood: [{mood_style}]{mood}[/]{npc_status}"
-        f"{effects_line}{inv_display}"
+        f"    Mood: [{mood_style}]{mood}[/]{eq_text}"
+        f"{effects_line}\n  Items: [bold]{inv_count}[/]{npc_status}"
     )
 
     room = game.current_room
@@ -191,7 +206,7 @@ def build_input_bar(current_input: str = "", last_command: str = "") -> Panel:
 
 
 def build_layout(
-    game: Game, ai_text: str, npc_room: str,
+    game: Game, ai_text: str,
     discovered: set, npcs_met: set, command_log: list,
     show_welcome: bool = False, typing: bool = False,
     show_inventory: bool = False, last_command: str = "",
@@ -209,7 +224,7 @@ def build_layout(
         Layout(name="center", ratio=60),
         Layout(name="right", ratio=20),
     )
-    layout["left"].update(build_stats_minimap_panel(game, npc_room))
+    layout["left"].update(build_stats_minimap_panel(game))
     layout["center"].update(build_center_panel(ai_text, command_log, game, show_welcome, typing, show_inventory))
     layout["right"].update(build_discovery_log(discovered, npcs_met))
     layout["input_bar"].update(build_input_bar(current_input, last_command))
@@ -219,17 +234,21 @@ def build_layout(
 def cmd_help() -> str:
     return (
         "[bold green]Commands:[/]\n"
-        "[green]n/s/e/w[/]      — Move in a direction\n"
-        "[green]look[/]         — Re-describe current room\n"
-        "[green]inventory[/] ([green]i[/])  — Show your carried items\n"
-        "[green]examine <item>[/] — Describe an item\n"
-        "[green]use <item>[/]     — Use an item (heal, light, etc.)\n"
-        "[green]search[/]       — Search room for hidden items\n"
-        "[green]pickup <item>[/] — Pick up an item\n"
-        "[green]drop <item>[/]   — Drop an item\n"
-        "[green]attack[/]       — Fight enemies\n"
-        "[green]save[/]         — Save game\n"
-        "[green]load[/]         — Load game\n"
-        "[green]help[/]         — Show this help\n"
-        "[green]quit[/]         — Exit game\n"
+        "[green]n/s/e/w/ne/nw/up/down[/]  — Move\n"
+        "[green]look[/]           — Examine room\n"
+        "[green]inventory[/] ([green]i[/])    — Show carried items\n"
+        "[green]examine <item>[/]  — Describe an item\n"
+        "[green]use <item>[/]      — Use an item\n"
+        "[green]equip <item>[/]    — Equip weapon/armor/accessory\n"
+        "[green]search[/]         — Search for hidden items\n"
+        "[green]talk <npc>[/]     — Talk to a character\n"
+        "[green]trade <give> <get>[/]  — Trade with merchant\n"
+        "[green]wares[/]          — See merchant's inventory\n"
+        "[green]pickup <item>[/]  — Pick up an item\n"
+        "[green]drop <item>[/]    — Drop an item\n"
+        "[green]attack[/]        — Fight enemies\n"
+        "[green]save[/]          — Save game\n"
+        "[green]load[/]          — Load game\n"
+        "[green]help[/]          — Show this help\n"
+        "[green]quit[/]          — Exit game\n"
     )

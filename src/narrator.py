@@ -162,6 +162,31 @@ class AINarrator:
         except Exception:
             return None
 
+    async def generate_npc_dialogue(
+        self,
+        npc_name: str,
+        npc_role: str,
+        room_name: str,
+        player_state: Dict[str, Any],
+        talked_before: bool = False,
+    ) -> Optional[str]:
+        if not self.client:
+            return None
+
+        greetings = {
+            "merchant": "'Ah, a customer! Welcome to my humble stall.'" if not talked_before else "'Back again? Browse at your leisure.'",
+            "oracle": "'I have seen you coming in the threads of fate.'" if not talked_before else "'The threads shift. Your path branches.'",
+            "trickster": "'Heh. Didn't see me, did you?'" if not talked_before else "'You're getting warmer. Or colder. Hard to tell.'",
+            "guide": "'You look lost. Most are, down here.'" if not talked_before else "'Still searching? The answer is closer than you think.'",
+            "guardian": "'None shall pass without the king's blessing.'" if not talked_before else "'You return. The crown still awaits.'",
+            "bard": "'A song for a coin, traveler? I know the ballads of this deep place.'" if not talked_before else "'I have a new verse for you…'",
+        }
+
+        greeting = greetings.get(npc_role, f"'{npc_name} regards you silently.'")
+        if not talked_before:
+            return f"[cyan]▸ {npc_name} says:[/] {greeting}"
+        return f"[cyan]▸ {npc_name} says:[/] {greeting}"
+
     async def generate_npc_encounter(
         self,
         npc_name: str,

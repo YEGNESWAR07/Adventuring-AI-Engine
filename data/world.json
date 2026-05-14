@@ -6,35 +6,24 @@
             "static_description": "You stand at the mouth of a vast cave system. Cool, damp air carries the scent of ancient stone and forgotten ages. A faint glow from bioluminescent fungi paints the walls in shades of ghostly blue.",
             "items": ["torch", "map"],
             "enemies": [],
-            "exits": {
-                "north": {"room": "Rocky Path", "required_item": null}
-            }
+            "exits": {"north": {"room": "Rocky Path", "required_item": null}}
         },
         "Rocky Path": {
-            "description": "A winding path of jagged stones leads deeper into the darkness. The ceiling drips with moisture.",
-            "static_description": "Jagged stones pave a winding path deeper into the earth. Moisture drips from the ceiling, creating tiny echoes that dance through the darkness. The air grows cooler as you descend.",
-            "items": [],
-            "enemies": [],
-            "exits": {
-                "north": {"room": "Narrow Passage", "required_item": null},
-                "south": {"room": "Cave Entrance", "required_item": null}
-            }
+            "description": "A winding path of jagged stones leads deeper into the darkness.",
+            "static_description": "Jagged stones pave a winding path deeper into the earth. Moisture drips from the ceiling. The air grows cooler as you descend.",
+            "items": [], "enemies": [],
+            "exits": {"north": {"room": "Narrow Passage", "required_item": null}, "south": {"room": "Cave Entrance", "required_item": null}}
         },
         "Narrow Passage": {
-            "description": "The walls close in around you. You must turn sideways to squeeze through in places.",
-            "static_description": "The passage narrows drastically here, forcing you to turn sideways and press through tight gaps. The rough stone scrapes against your shoulders. Up ahead, the tunnel widens again.",
-            "items": [],
-            "enemies": [],
-            "exits": {
-                "north": {"room": "Goblin Cavern", "required_item": null},
-                "south": {"room": "Rocky Path", "required_item": null}
-            }
+            "description": "The walls close in. You must turn sideways in places.",
+            "static_description": "The passage narrows drastically. The rough stone scrapes your shoulders. Up ahead the tunnel widens again.",
+            "items": [], "enemies": [],
+            "exits": {"north": {"room": "Goblin Cavern", "required_item": null}, "south": {"room": "Rocky Path", "required_item": null}}
         },
         "Goblin Cavern": {
-            "description": "A large cavern littered with bones and crude tools. The stench of goblin is unmistakable.",
-            "static_description": "This sprawling cavern bears all the marks of goblin habitation: scattered bones, crude wooden tools, and a wretched stench that clings to the air. Flickering shadows suggest movement in the periphery.",
-            "items": ["rusty key", "ancient coin"],
-            "enemies": ["goblin"],
+            "description": "A large cavern littered with bones and crude tools.",
+            "static_description": "This sprawling cavern bears all the marks of goblin habitation: scattered bones, crude wooden tools, and a wretched stench. Flickering shadows suggest movement in the periphery.",
+            "items": ["rusty key", "ancient coin"], "enemies": ["goblin"],
             "exits": {
                 "north": {"room": "Ancient Vault", "required_item": "golden idol"},
                 "east": {"room": "Treasure Chamber", "required_item": null},
@@ -43,70 +32,53 @@
             }
         },
         "Treasure Chamber": {
-            "description": "Gold and jewels spill from shattered chests. A single golden idol sits upon a stone pedestal.",
-            "static_description": "Sunlight has never touched this place, yet the room glitters with reflected torchlight. Gold coins, cut jewels, and ancient artifacts lie heaped against the walls. At the center, a stone pedestal holds a single golden idol, its empty eyes staring into eternity.",
-            "items": ["golden idol", "gold coin", "diamond ring", "ruby"],
-            "enemies": [],
-            "exits": {
-                "west": {"room": "Goblin Cavern", "required_item": null}
-            }
+            "description": "Gold and jewels spill from shattered chests. A golden idol sits on a stone pedestal.",
+            "static_description": "Sunlight has never touched this place yet the room glitters. Gold coins, jewels, and ancient artifacts lie heaped. A stone pedestal holds a golden idol, its eyes staring into eternity.",
+            "items": ["golden idol", "gold coin", "diamond ring", "ruby"], "enemies": [],
+            "exits": {"west": {"room": "Goblin Cavern", "required_item": null}}
         },
         "Ancient Vault": {
             "description": "An ancient stone vault sealed for centuries. The air is dry and still.",
-            "static_description": "The massive stone door grooms open to reveal a vault sealed for centuries. Dust hangs thick in the still air. Shelves line the walls, holding relics of a civilization long turned to dust. A legendary blade rests on a central altar.",
-            "items": ["legendary blade", "ancient crown"],
-            "enemies": [],
-            "exits": {
-                "south": {"room": "Goblin Cavern", "required_item": null}
-            }
+            "static_description": "The massive stone door groans open revealing a vault sealed for centuries. Shelves line the walls holding relics of a civilization long turned to dust. A legendary blade rests on a central altar.",
+            "items": ["legendary blade", "ancient crown"], "enemies": [],
+            "exits": {"south": {"room": "Goblin Cavern", "required_item": null}}
         },
         "Crossroads": {
-            "description": "Four passages converge here. Faint whispers echo from each direction.",
-            "static_description": "Four tunnels meet at this natural junction, each one promising different fates. Faint, indistinguishable whispers seem to emanate from the very stone. A carved signpost, weathered by centuries, stands at the center with indecipherable symbols.",
-            "items": [],
-            "enemies": [],
+            "description": "Many passages converge here. Faint whispers echo from each direction.",
+            "static_description": "Many tunnels meet at this natural junction, each promising different fates. Whispers seem to emanate from the stone itself. A weathered signpost stands at the center.",
+            "items": [], "enemies": [],
             "exits": {
                 "north": {"room": "Goblin Cavern", "required_item": null},
                 "east": {"room": "Forgotten Armory", "required_item": null},
                 "west": {"room": "Underground Lake", "required_item": null},
                 "south": {"room": "Ancient Library", "required_item": null},
-                "northeast": {"room": "Healing Spring", "required_item": null}
+                "northeast": {"room": "Healing Spring", "required_item": null},
+                "northwest": {"room": "Bazaar", "required_item": null},
+                "down": {"room": "Deep Tunnels", "required_item": null}
             }
         },
         "Forgotten Armory": {
-            "description": "Racks of rusted weapons line the walls. A few pieces remain in good condition.",
-            "static_description": "This chamber was once an armory, its walls lined with weapon racks that have long since crumbled. Most of the arms have rusted to uselessness, but a shield and iron helm among the debris still gleam with a faint oil sheen.",
-            "items": ["shield", "iron helm"],
-            "enemies": [],
-            "exits": {
-                "west": {"room": "Crossroads", "required_item": null},
-                "south": {"room": "Echoing Hall", "required_item": null}
-            }
+            "description": "Racks of rusted weapons line the walls.",
+            "static_description": "This chamber was once an armory. Most arms have rusted but a shield and helm still gleam with an oil sheen.",
+            "items": ["shield", "iron helm"], "enemies": [],
+            "exits": {"west": {"room": "Crossroads", "required_item": null}, "south": {"room": "Echoing Hall", "required_item": null}}
         },
         "Underground Lake": {
-            "description": "An underground lake stretches into darkness. The water is perfectly still and impossibly clear.",
-            "static_description": "A vast underground lake spreads before you, its surface like black glass reflecting the bioluminescent fungi on the ceiling. The water is so clear you can see the stone floor far below. At the water's edge, half-buried in silt, a sword glints.",
-            "items": ["rusty sword"],
-            "enemies": [],
-            "exits": {
-                "east": {"room": "Crossroads", "required_item": null}
-            }
+            "description": "A vast underground lake stretches into darkness. The water is perfectly still.",
+            "static_description": "A vast underground lake spreads before you, its surface like black glass reflecting bioluminescent fungi. The water is so clear you can see the stone floor far below.",
+            "items": ["rusty sword"], "enemies": [],
+            "exits": {"east": {"room": "Crossroads", "required_item": null}}
         },
         "Rat Tunnels": {
-            "description": "Low-ceilinged tunnels that smell of fur and filth. Scurrying sounds surround you.",
-            "static_description": "These tunnels were carved by water—and something else. The ceiling is low, forcing you to stoop. The stench of wet fur and guano is overwhelming. Red eyes gleam from the darkness as giant rats scatter.",
-            "items": [],
-            "enemies": ["giant rat"],
-            "exits": {
-                "south": {"room": "Crossroads", "required_item": null},
-                "north": {"room": "Collapsed Tunnel", "required_item": null}
-            }
+            "description": "Low-ceilinged tunnels smelling of fur and filth.",
+            "static_description": "The ceiling is low forcing you to stoop. The stench of wet fur and guano is overwhelming. Red eyes gleam from the darkness.",
+            "items": [], "enemies": ["giant rat"],
+            "exits": {"south": {"room": "Crossroads", "required_item": null}, "north": {"room": "Collapsed Tunnel", "required_item": null}}
         },
         "Ancient Library": {
-            "description": "Towering shelves of petrified books line the walls. Knowledge turns to dust at your touch.",
-            "static_description": "This grand library has survived the centuries, though barely. Towering shelves, bowed under the weight of countless books, line every wall. The tomes crumble at a touch, but a few scrolls on a central table remain intact, preserved by some ancient magic.",
-            "items": ["healing salve", "ancient scroll"],
-            "enemies": [],
+            "description": "Towering shelves of petrified books line the walls.",
+            "static_description": "This grand library has survived the centuries barely. Towering shelves bow under the weight of countless books. A few scrolls on a central table remain intact.",
+            "items": ["healing salve", "ancient scroll"], "enemies": [],
             "exits": {
                 "north": {"room": "Crossroads", "required_item": null},
                 "east": {"room": "Hidden Passage", "required_item": null},
@@ -115,91 +87,160 @@
             }
         },
         "Meditation Chamber": {
-            "description": "A circular chamber with a smooth stone floor. The acoustics are perfect—every sound rings clear.",
-            "static_description": "A perfectly circular chamber with a floor worn smooth by countless feet. The acoustics here are remarkable—your heartbeat echoes off the walls in rhythmic waves. A single stone basin in the center still holds clear water.",
-            "items": ["crystal focus"],
-            "enemies": [],
-            "exits": {
-                "north": {"room": "Ancient Library", "required_item": null}
-            }
+            "description": "A circular chamber with a smooth stone floor. The acoustics are perfect.",
+            "static_description": "A perfectly circular chamber with a floor worn smooth by countless feet. Your heartbeat echoes off the walls. A stone basin in the center holds clear water.",
+            "items": ["crystal focus"], "enemies": [],
+            "exits": {"north": {"room": "Ancient Library", "required_item": null}}
         },
         "Hidden Passage": {
-            "description": "A secret passage hidden behind a false bookshelf. Dust motes dance in the torchlight.",
-            "static_description": "The bookshelf swings open silently on well-oiled hinges, revealing a narrow passage beyond. Dust motes dance in your torchlight like floating stars. The walls are lined with faded frescoes depicting a great battle between light and shadow.",
-            "items": [],
-            "enemies": ["skeleton guardian"],
-            "exits": {
-                "west": {"room": "Ancient Library", "required_item": null},
-                "east": {"room": "Dragon's Lair", "required_item": null}
-            }
+            "description": "A secret passage behind a false bookshelf.",
+            "static_description": "The bookshelf swings open revealing a narrow passage. Dust motes dance in your torchlight. The walls are lined with faded frescoes of an ancient battle.",
+            "items": [], "enemies": ["skeleton guardian"],
+            "exits": {"west": {"room": "Ancient Library", "required_item": null}, "east": {"room": "Dragon's Lair", "required_item": null}}
         },
         "Dragon's Lair": {
-            "description": "The heat is intense. A massive form stirs in the shadows, scales gleaming like molten metal.",
-            "static_description": "The heat hits you like a physical force. This vast chamber is the lair of an elder wyrm—its scales smolder with inner fire, casting dancing shadows across walls covered in molten gold veins. The beast's eye, the size of your fist, slowly opens.",
-            "items": ["dragon heart", "gem of power"],
-            "enemies": ["elder wyrm"],
-            "exits": {
-                "west": {"room": "Hidden Passage", "required_item": null},
-                "east": {"room": "Escape Tunnel", "required_item": null}
-            }
+            "description": "The heat is intense. A massive form stirs in the shadows.",
+            "static_description": "The heat hits you like a physical force. An elder wyrm's scales smolder with inner fire, casting dancing shadows across walls covered in molten gold veins.",
+            "items": ["dragon heart", "gem of power"], "enemies": ["elder wyrm"],
+            "exits": {"west": {"room": "Hidden Passage", "required_item": null}, "east": {"room": "Escape Tunnel", "required_item": null}}
         },
         "Healing Spring": {
-            "description": "A grotto with a crystal-clear pool at its center. Warm steam rises from the water, carrying a mineral scent.",
-            "static_description": "You enter a peaceful grotto where a natural spring bubbles up from deep within the earth. The water is warm and luminous, casting dancing reflections on the stone ceiling. A greater health potion rests on a rock beside the pool. The air feels restorative here.",
-            "items": ["greater health potion"],
-            "enemies": [],
-            "exits": {
-                "south": {"room": "Crossroads", "required_item": null}
-            }
+            "description": "A grotto with a crystal-clear warm pool at its center.",
+            "static_description": "You enter a peaceful grotto where a natural spring bubbles up from deep within the earth. The warm luminous water casts dancing reflections. A greater health potion rests beside the pool.",
+            "items": ["greater health potion"], "enemies": [],
+            "exits": {"south": {"room": "Crossroads", "required_item": null}}
         },
         "Verdant Cavern": {
-            "description": "This cavern is filled with strange phosphorescent plants that pulse with soft blue light.",
-            "static_description": "Unlike the rest of the cave system, this chamber teems with life. Glowing fungi in shades of blue and violet carpet the floor and walls. Strange flowers with silver veins bloom in the dim light. The air is thick with the scent of damp earth and sweet nectar.",
-            "items": ["mysterious herb", "elven bread"],
-            "enemies": [],
-            "exits": {
-                "south": {"room": "Ancient Library", "required_item": null},
-                "west": {"room": "Underground Lake", "required_item": null}
-            }
+            "description": "Filled with strange phosphorescent plants pulsing with soft blue light.",
+            "static_description": "Unlike the rest of the cave system this chamber teems with life. Glowing fungi in shades of blue and violet carpet the floor. Strange flowers with silver veins bloom in the dim light.",
+            "items": ["mysterious herb", "elven bread"], "enemies": [],
+            "exits": {"south": {"room": "Ancient Library", "required_item": null}, "west": {"room": "Underground Lake", "required_item": null}}
         },
         "Collapsed Tunnel": {
-            "description": "The ceiling has partially collapsed here, creating a maze of rubble and broken pillars.",
-            "static_description": "An ancient collapse has transformed this passage into a treacherous maze of broken stone and twisted iron supports. Dust still hangs in the air. Among the rubble, you spot the glint of something metallic — a health potion wedged between two fallen pillars.",
-            "items": ["health potion", "bandages"],
-            "enemies": ["cave spider"],
-            "exits": {
-                "north": {"room": "Rat Tunnels", "required_item": null},
-                "east": {"room": "Underground Lake", "required_item": null}
-            }
+            "description": "Partially collapsed ceiling creates a maze of rubble.",
+            "static_description": "An ancient collapse has transformed this passage into a treacherous maze of broken stone and twisted iron. A health potion glints between two fallen pillars.",
+            "items": ["health potion", "bandages"], "enemies": ["cave spider"],
+            "exits": {"north": {"room": "Rat Tunnels", "required_item": null}, "east": {"room": "Underground Lake", "required_item": null}}
         },
         "Echoing Hall": {
-            "description": "A grand hall with a vaulted ceiling. Every sound echoes impossibly, as if the room itself is alive.",
-            "static_description": "You stand in a vast natural hall with a ceiling that soars into darkness above. The acoustics are extraordinary — your footsteps reverberate like drumbeats, and whispers seem to answer from the shadows. Ancient murals cover the walls, depicting a ritual of some kind.",
-            "items": [],
-            "enemies": [],
-            "exits": {
-                "north": {"room": "Forgotten Armory", "required_item": null},
-                "west": {"room": "Ancient Library", "required_item": null}
-            }
+            "description": "A grand hall where every sound echoes impossibly.",
+            "static_description": "A vast natural hall with a ceiling soaring into darkness. Your footsteps reverberate like drumbeats. Ancient murals cover the walls depicting a ritual of some kind.",
+            "items": [], "enemies": [],
+            "exits": {"north": {"room": "Forgotten Armory", "required_item": null}, "west": {"room": "Ancient Library", "required_item": null}}
+        },
+        "Fungal Caverns": {
+            "description": "Towering mushrooms glow with an eerie bioluminescence.",
+            "static_description": "Mushrooms the size of houses tower around you, their caps glowing in shades of purple and teal. Spores drift through the air like tiny stars. The ground is soft with fungal matter.",
+            "items": ["strange mushroom"], "enemies": ["giant fungus"],
+            "exits": {"east": {"room": "Ancient Library", "required_item": null}, "north": {"room": "Crystal Cave", "required_item": null}}
+        },
+        "Crystal Cave": {
+            "description": "A cave lined with quartz crystals that refract light into rainbows.",
+            "static_description": "Every surface is covered with quartz crystals of every size. They catch whatever light exists and refract it into a thousand dancing rainbows. The air hums with a faint harmonic resonance.",
+            "items": ["crystal focus", "gem of power"], "enemies": [],
+            "exits": {"south": {"room": "Fungal Caverns", "required_item": null}, "east": {"room": "Lava Bridge", "required_item": null}}
+        },
+        "Lava Bridge": {
+            "description": "A natural stone bridge spans a river of molten lava below.",
+            "static_description": "The heat is suffocating. A narrow stone bridge arches over a river of molten rock that glows and pulses far below. The air shimmers with heat. On the far side a tunnel leads deeper.",
+            "items": ["bomb"], "enemies": ["fire elemental"],
+            "exits": {"west": {"room": "Crystal Cave", "required_item": null}, "east": {"room": "Underground River", "required_item": null}}
+        },
+        "Underground River": {
+            "description": "An underground river rushes through a wide tunnel.",
+            "static_description": "A powerful river cuts through this chamber, its waters black and swift. The current is too strong to cross without help. Along the bank you find debris washed downstream.",
+            "items": ["rope", "health potion"], "enemies": [],
+            "exits": {"west": {"room": "Lava Bridge", "required_item": null}, "south": {"room": "Deep Tunnels", "required_item": null}}
+        },
+        "Deep Tunnels": {
+            "description": "Rough-hewn tunnels that descend deep into the earth.",
+            "static_description": "These tunnels were carved by ancient miners who sought something precious in the depths. Rusted pickaxes and broken carts line the walls. The air grows warmer as you descend.",
+            "items": ["lantern", "iron key"], "enemies": ["dark creeper"],
+            "exits": {"up": {"room": "Crossroads", "required_item": null}, "south": {"room": "Forgotten City Gates", "required_item": null}, "east": {"room": "Underground River", "required_item": null}}
+        },
+        "Forgotten City Gates": {
+            "description": "Massive stone gates mark the entrance to a lost underground city.",
+            "static_description": "Twin pillars carved with scenes of a glorious civilization frame a set of enormous iron gates. They stand slightly ajar as if awaiting your arrival. Beyond them lies a city swallowed by the earth.",
+            "items": [], "enemies": [],
+            "exits": {"north": {"room": "Deep Tunnels", "required_item": null}, "east": {"room": "Market Ruins", "required_item": null}, "south": {"room": "Silent Grove", "required_item": null}}
+        },
+        "Market Ruins": {
+            "description": "The remains of an ancient marketplace. Stalls and carts are frozen in time.",
+            "static_description": "Stone stalls line what was once a bustling market square. Petrifed goods still rest on counters. A merchant's skeleton sits behind a counter, keys still clutched in its bony fingers.",
+            "items": ["silver key"], "enemies": [],
+            "exits": {"west": {"room": "Forgotten City Gates", "required_item": null}, "east": {"room": "Training Ground", "required_item": null}}
+        },
+        "Training Ground": {
+            "description": "An ancient training ground with weapon racks and practice dummies.",
+            "static_description": "This chamber was clearly a training ground. Weapon racks line the walls. Practice dummies stand in rows, their straw stuffing long since rotted. A sturdy iron sword rests on a bench.",
+            "items": ["iron sword", "leather vest"], "enemies": [],
+            "exits": {"west": {"room": "Market Ruins", "required_item": null}, "north": {"room": "Treasury", "required_item": null}, "south": {"room": "Tomb of Kings", "required_item": null}}
+        },
+        "Treasury": {
+            "description": "A vaulted chamber filled with chests and coin piles.",
+            "static_description": "This was the city's treasury. Most chests have been looted but a few remain sealed. A single chest of dark iron catches your eye - it glows with a faint inner light.",
+            "items": ["gold coin", "diamond ring"], "enemies": [],
+            "exits": {"south": {"room": "Training Ground", "required_item": null}, "east": {"room": "Tomb of Kings", "required_item": "silver key"}}
+        },
+        "Tomb of Kings": {
+            "description": "The final resting place of the city's ancient rulers.",
+            "static_description": "Sarcophagi of marble and gold line this grand tomb. Each bears the effigy of a king or queen. At the far end a crown rests on a stone pillow. The air is heavy with the weight of ages.",
+            "items": ["ancient crown", "ring of protection"], "enemies": ["skeleton king"],
+            "exits": {"north": {"room": "Training Ground", "required_item": null}, "west": {"room": "Ritual Chamber", "required_item": null}}
+        },
+        "Ritual Chamber": {
+            "description": "A circular chamber with an altar at its center. Strange symbols cover the floor.",
+            "static_description": "Concentric circles of glowing runes cover the floor of this chamber. An obsidian altar stands at the epicenter. The air crackles with residual magic. Something was summoned here long ago.",
+            "items": ["crystal focus", "ancient scroll"], "enemies": ["void shade"],
+            "exits": {"east": {"room": "Tomb of Kings", "required_item": null}}
+        },
+        "Bazaar": {
+            "description": "A bustling underground market. Colorful tents line the walls.",
+            "static_description": "Despite being deep underground this chamber is alive with activity. Colorful tents and stalls line the walls. A mysterious merchant sits at the center surrounded by wares from distant lands.",
+            "items": [], "enemies": [],
+            "exits": {"southeast": {"room": "Crossroads", "required_item": null}, "north": {"room": "Oracle's Chamber", "required_item": null}}
+        },
+        "Oracle's Chamber": {
+            "description": "A chamber draped in silken veils. Incense hangs thick in the air.",
+            "static_description": "Silken veils of deep purple and gold drape from the ceiling, creating an intimate sacred space. Incense burns in braziers filling the air with exotic scents. A figure sits cross-legged on a cushion at the center.",
+            "items": ["phoenix feather"], "enemies": [],
+            "exits": {"south": {"room": "Bazaar", "required_item": null}}
+        },
+        "Silent Grove": {
+            "description": "An underground forest of pale trees that somehow thrive without sunlight.",
+            "static_description": "Impossibly a grove of pale silver-barked trees grows here, their leaves glowing with soft bioluminescence. The ground is carpeted with phosphorescent moss. The silence is absolute and profound.",
+            "items": ["elven bread", "mysterious herb"], "enemies": [],
+            "exits": {"north": {"room": "Forgotten City Gates", "required_item": null}}
+        },
+        "Bone Pit": {
+            "description": "A vast pit filled with the bones of countless creatures.",
+            "static_description": "You stand at the edge of a massive pit filled with bones of every shape and size. They crunch and shift beneath your feet. A narrow path winds through the bonefield.",
+            "items": ["ancient coin"], "enemies": ["bone golem"],
+            "exits": {"south": {"room": "Spider Nest", "required_item": null}}
+        },
+        "Spider Nest": {
+            "description": "Webs coat every surface. The walls pulse with egg sacs.",
+            "static_description": "Gleaming webs coat every surface of this tunnel. Egg sacs the size of your head pulse gently. The skittering of countless legs echoes from the darkness above.",
+            "items": [], "enemies": ["giant spider", "giant spider"],
+            "exits": {"north": {"room": "Bone Pit", "required_item": null}, "west": {"room": "Deep Tunnels", "required_item": null}}
+        },
+        "Shadow Thief Lair": {
+            "description": "A hidden den filled with stolen trinkets and shadows.",
+            "static_description": "This hidden chamber is clearly the den of the Shadow Thief. Stolen goods are piled in corners: glittering jewels, ancient coins, and mysterious artifacts. A note pinned to the wall reads: 'Next: the vault.'",
+            "items": ["silver dagger", "ring of strength", "health potion", "gold coin"], "enemies": [],
+            "exits": {"south": {"room": "Deep Tunnels", "required_item": null}}
         },
         "Escape Tunnel": {
-            "description": "A rough-hewn tunnel sloping upward. Fresh air—you can smell it!",
-            "static_description": "This tunnel slopes steeply upward, its walls rough and uneven as if carved in desperate haste. But it's the air that stops you—fresh, clean air carrying the scent of pine and earth. Freedom is near.",
-            "items": [],
-            "enemies": [],
-            "exits": {
-                "west": {"room": "Dragon's Lair", "required_item": null},
-                "east": {"room": "Sunlit Valley", "required_item": null}
-            }
+            "description": "A rough-hewn tunnel sloping upward. Fresh air!",
+            "static_description": "This tunnel slopes steeply upward, its walls rough and uneven. But it's the air that stops you - fresh, clean air carrying the scent of pine and earth. Freedom is near.",
+            "items": [], "enemies": [],
+            "exits": {"west": {"room": "Dragon's Lair", "required_item": null}, "east": {"room": "Sunlit Valley", "required_item": null}}
         },
         "Sunlit Valley": {
-            "description": "You emerge into a sun-drenched valley. The world stretches before you. You have escaped the darkness.",
-            "static_description": "You shield your eyes as brilliant sunlight floods your vision. Green grass, towering pines, and a clear blue sky stretch before you. Birds sing. A gentle breeze carries the scent of wildflowers. The darkness of the caves feels like a distant nightmare. You are free.",
-            "items": [],
-            "enemies": [],
-            "exits": {
-                "west": {"room": "Escape Tunnel", "required_item": null}
-            }
+            "description": "You emerge into a sun-drenched valley. The world stretches before you.",
+            "static_description": "You shield your eyes as brilliant sunlight floods your vision. Green grass, towering pines, and a clear blue sky stretch before you. Birds sing. A gentle breeze carries the scent of wildflowers. You are free.",
+            "items": [], "enemies": [],
+            "exits": {"west": {"room": "Escape Tunnel", "required_item": null}}
         }
     }
 }
