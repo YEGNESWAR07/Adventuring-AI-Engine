@@ -14,6 +14,8 @@ build/
 
 # ── Game State (auto-generated) ─────────────────────────────────────
 savegame.json
+data/lore_db/
+data/campaign.json
 *.save
 
 # ── Test Artifacts ──────────────────────────────────────────────────

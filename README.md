@@ -8,21 +8,19 @@
 
 > **An async AI-powered terminal-based interactive fiction engine.** Explore a vast 45-room dungeon, trade with unique NPCs, equip weapons and armor, fight dynamic turn-based combat, and uncover hidden secrets — all powered by Groq's LPU inference for real-time AI narration.
 
-**Topics:** `python` `text-adventure` `ai-game` `terminal-game` `rich-tui` `groq` `interactive-fiction` `dungeon-crawler` `async-python` `game-engine` `llm-game` `rpg-game` `cli-game` `pydantic` `asyncio`
 
 ---
-
 ## 📊 At a Glance
 
 | Feature | Detail |
 |---------|--------|
 | **World Size** | 45 interconnected rooms across 5 zones |
-| **NPCs** | 6 unique characters (Merchant, Oracle, Thief, Guardian, Bard, Lost Soul) |
-| **Items** | 40+ items with rarity, equipment slots (weapon/armor/accessory), and lore |
-| **Combat** | Dynamic turn-based with shield blocking, variable damage, and empowerment |
-| **AI Narration** | Groq Llama 3.3 70B for room descriptions, NPC encounters, and hints |
-| **Input** | Real-time character-by-character typing inside the UI |
-| **API Efficiency** | ~60% fewer calls than traditional approach with smarter caching |
+| **NPCs** | Multi-agent NPCs with unique Groq-powered personalities |
+| **Items** | 40+ items with RAG-grounded lore and equipment slots |
+| **Lore Engine** | Persistent RAG system using ChromaDB for deep world grounding |
+| **Campaigns** | Persistent session tracking with branching narrative state |
+| **Combat** | Dynamic turn-based with shield blocking and status effects |
+| **AI Narration** | Groq Llama 3.3 70B for lore-consistent storytelling |
 | **Tests** | 144 passing unit tests |
 
 ---
@@ -35,62 +33,55 @@
 │                         │                       │          │
 │                         ▼                       ▼          │
 │                 [ Game State ]  ←  [ World Data ]          │
-│                         │                                   │
-│                         ▼                                   │
-│  [ Rich TUI ]  ←  [ AsyncGroq Narrator ]                   │
+│                         │                │                  │
+│                         ▼                ▼                  │
+│  [ Rich TUI ]  ←  [ AsyncGroq ]  ←  [ Lore DB (RAG) ]      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-- **AsyncGroq** — Non-blocking LLM inference via Groq's LPU™ hardware; sub-500ms narration latency keeps the UI responsive.
-- **Pydantic v2** — Schema-driven world building; `WorldData`, `RoomData`, and `ExitData` models validate `world.json` at load, catching malformed data before runtime.
-- **Object-Oriented Engine** — Clean separation of concerns: `World` owns rooms, `Game` orchestrates state, `Player` manages inventory/health, `EventSystem` decouples side-effects.
+- **RAG Grounding** — Uses ChromaDB and `all-MiniLM-L6-v2` to retrieve relevant world history and item backstories, ensuring the narrator and NPCs are grounded in consistent lore.
+- **Multi-Agent NPCs** — Individual NPCs have their own conversation memory and Groq-powered personas, allowing for natural dialogue and autonomous behavior.
+- **Campaign Persistence** — Tracks global world state and player choices across sessions via `CampaignManager`.
 
 ---
 
 ## Features
 
+### 📚 RAG-based World Lore
+- **Vectorized Lore Database** — The `LoreManager` uses ChromaDB to store and retrieve world history, character bios, and item legends.
+- **Grounded Narration** — Room descriptions and item examinations are automatically grounded in retrieved lore snippets, creating a rich, consistent world.
+- **Persistent Lore** — World data is indexed once and persists across game runs in `data/lore_db`.
+
+### 🎭 Multi-Agent NPC System
+- **Independent Personalities** — Each NPC (Merchant, Oracle, Thief, etc.) is powered by its own Groq agent with unique system prompts and goals.
+- **Natural Language Dialogue** — Talk to NPCs using natural language: `talk vex what do you know about the crystal?`.
+- **Autonomous Behavior** — NPCs can roam the world or stay put based on their defined goals.
+
+### 📜 Persistent Campaign Mode
+- **Session Tracking** — The `CampaignManager` remembers your choices, discovered secrets, and world-altering events.
+- **Global Flags** — Actions like defeating specific enemies or finding legendary items set permanent flags that influence the story across runs.
+
 ### 🧠 Context-Aware AI Narration
 - **Real-time Groq inference** via `llama-3.3-70b-versatile` — each room entry generates a unique, sensory-rich description.
-- **Sentiment memory** — The narrator tracks your last 3 actions. Aggressive play darkens the atmosphere; low HP triggers surreal, fever-dream descriptions.
-- **Graceful fallback** — Returns `static_description` from JSON if the API is unavailable.
-
-### 🖥️ Real-Time TUI Layout
-- **Rich `Live` display** with a four-panel cockpit layout (20/60/20 + input bar):
-  - **Left**: Player stats (HP bar, turn counter, room, mood) + Mini-map (connected rooms + lock indicators)
-  - **Center**: AI story feed with room items & enemies displayed inline beneath narration
-  - **Right**: Discovery log (items collected + NPCs met)
-  - **Bottom**: Input command bar showing prompt state
-- **Startup welcome panel** — Displays a full list of available commands on first launch; auto-dismisses after the player's first command.
-- **Typing indicator** — Shows `✦ The narrator is weaving the story...` while the AI generates room descriptions, giving real-time feedback during async LLM calls.
-- **Character-by-character input** — Uses `msvcrt.getwch()` for real-time keystroke capture; each character appears instantly in the input bar panel as you type. No more typing "in the background."
-- **Async non-blocking architecture** — Input reading runs in a thread via `asyncio.to_thread`, never blocking the render loop.
-
-### 👤 Agentic NPC — "The Shadow Thief"
-- **Autonomous roaming** — Every 5 turns, Groq decides where the Shadow Thief moves next, creating a living world that evolves around you.
-- **Dynamic encounters** — The NPC can appear in any room, adding unpredictability to every playthrough. A special alert fires when the thief enters your room.
-
-### 🎮 New Interactive Commands
-- **`inventory` / `i`** — Opens a dedicated inventory panel showing all carried items with a numbered list.
-- **`examine <item>`** — Reveals rich item lore (hand-written descriptions + optional AI-enhanced narration via Groq).
-- **`use <item>`** — Interactive item effects: `healing salve` (+30 HP), `health potion` (+50 HP), `greater health potion` (+75 HP), `torch` illuminates the area, `map` reveals room contents, `crystal focus` empowers attacks.
-- **`search`** — Discovers hidden items in rooms that don't appear on first entry (lootable secrets in every major area).
-
-### ⚔️ Dynamic Combat System
-- **Variable damage** — Attacks deal 5-15 damage (enemies) and 8-18 damage (player), making each fight unpredictable.
-- **Shield blocking** — Carrying a `shield` gives 50% block chance; an `iron helm` gives 25%. Blocked attacks deal zero damage.
-- **Empowered state** — Using the `crystal focus` grants a 5-turn damage boost.
-- **Aggression penalty** — Repeated aggressive play risks leaving yourself open to extra damage.
-- **Enemy defeat chance** — Strong hits can instantly defeat enemies.
-
-### 🩺 Status Effects & Visual Feedback
-- **Active effects** — Status icons (`Lit`, `Empowered`) appear in the stats panel with turn-countdown timers.
-- **Low HP warning** — HP bar blinks red and panel borders turn red when health drops below 25%.
-- **NPC proximity alert** — A `⚠` icon appears in the room name when the Shadow Thief is in your room.
-- **End-game stats** — Final screen shows turns survived and items collected.
+- **Sentiment memory** — The narrator tracks your last 3 actions. Aggressive play darkens the atmosphere; low HP triggers surreal descriptions.
 
 ### 💾 Stateful Session Management
-- **Save/Load** — Full game state serialization (health, inventory, room states, enemy positions).
-- **Turn tracking** — Activity log and aggression tracker persist across sessions.
+- **Save/Load** — Full game state serialization (health, inventory, room states, NPC positions).
+- **Campaign Persistence** — World state and narrative progress persist in `data/campaign.json`.
+
+---
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|-----------|
+| Language | Python 3.12+ |
+| AI Inference | Groq SDK (`AsyncGroq`) — Llama 3.3 70B |
+| Vector DB | ChromaDB (Persistent Storage) |
+| Embeddings | Sentence-Transformers (`all-MiniLM-L6-v2`) |
+| Data Validation | Pydantic v2 |
+| Terminal UI | Rich 14+ (`Live`, `Layout`, `Panel`, `Bar`) |
+| Testing | `pytest` |
 
 ---
 
@@ -110,11 +101,9 @@ cd aura-quest
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Configure your own API key
-echo "GROQ_API_KEY=gsk_your_key_here" 
+# 3. Configure your API key in .env
+GROQ_API_KEY=gsk_your_key_here
 ```
-
-
 
 ### Run the Game
 
@@ -122,139 +111,31 @@ echo "GROQ_API_KEY=gsk_your_key_here"
 python -m src.main
 ```
 
-### Run Tests
-
-```bash
-python -m pytest tests/ -v
-```
-
 ---
 
-## Tech Stack
-
-| Component | Technology |
-|-----------|-----------|
-| Language | Python 3.12+ |
-| AI Inference | Groq SDK (`AsyncGroq`) — Llama 3.3 70B |
-| Data Validation | Pydantic v2 |
-| Terminal UI | Rich 14+ (`Live`, `Layout`, `Panel`, `Bar`) |
-| Environment | `python-dotenv` |
-| Testing | `unittest` + `pytest` |
-
----
-
-## Project Structure
-
-```
-aura-quest/
-├── .env                        # API keys (excluded from git)
-├── .gitignore                  # Security exclusions
-├── requirements.txt            # Python dependencies
-├── README.md                   # You are here
-├── savegame.json               # Auto-generated save file (excluded from git)
-├── data/
-│   └── world.json              # 20-room game world (Pydantic-validated)
-├── src/
-│   ├── __init__.py             # Package marker
-│   ├── models.py               # Pydantic schemas (WorldData, RoomData, ExitData)
-│   ├── engine.py               # Core logic (movement, inventory, combat, save/load)
-│   ├── narrator.py             # AsyncGroq narrator + system prompts
-│   ├── ui.py                   # Rich TUI components (panels, layout, input bar)
-│   └── main.py                 # Async entry point + game loop
-└── tests/
-    └── test_engine.py          # Unit tests
-```
-
----
-
-## Gameplay
-
-### First-Time Experience
-When you start the game, a **welcome panel** greets you with the full list of commands. This panel disappears after your **first command**, transitioning seamlessly into the live story feed. Type `help` at any time to see the command list again.
-
-### Commands
+## Gameplay Commands
 
 | Command | Description |
 |---------|-------------|
-| `n` / `s` / `e` / `w` / `ne` | Move in a cardinal or diagonal direction |
-| `look` | Examine the room (uses static description — saves API calls) |
+| `n` / `s` / `e` / `w` | Move in a cardinal direction |
+| `talk <npc> <msg>` | Talk to an NPC using natural language |
+| `examine <item>` | Examine an item with RAG-grounded lore |
 | `inventory` / `i` | Show all items you are carrying |
-| `examine <item>` | Get a detailed description of an item |
-| `use <item>` | Use an item (heal with salve, light torch, study map, etc.) |
 | `search` | Search the room for hidden items |
 | `pickup <item>` | Add an item to your inventory |
 | `drop <item>` | Remove an item from your inventory |
 | `attack` / `fight` | Engage enemies in dynamic combat |
-| `save` | Persist game state to disk |
-| `load` | Restore game state from disk |
+| `save` / `load` | Persist or restore game state |
 | `help` | Display command reference |
 | `quit` | Exit the game |
-
-### Interactive UI Feedback
-- **Room items & enemies** — Always visible beneath the AI narration in the center panel. See exactly what's in the room at a glance.
-- **Inventory panel** — The `inventory`/`i` command switches the center panel to a numbered item list showing everything you carry.
-- **Status effects** — Active buffs (`Lit`, `Empowered`) appear in the stats panel with turn-countdown timers.
-- **Dynamic borders** — Panel borders change color based on health (blue > yellow > red) for at-a-glance status awareness.
-- **Low HP blink** — The HP bar enters `blink` mode when health drops below 25%.
-- **Turn counter** — Tracks every action you take, displayed in the left stats panel.
-- **Command log** — Shows your 6 most recent actions with color-coded feedback (green=success, red=error, yellow=warning).
-- **Typing indicator** — While the AI generates a room description, the center panel displays a loading animation for real-time feedback.
-- **NPC proximity alert** — A `⚠` icon flashes next to the room name when the Shadow Thief is nearby.
-- **Real-time input bar** — Type directly into the input bar panel at the bottom of the screen. Each keystroke appears instantly with a blinking cursor — no more typing in the terminal background.
-- **Live AI hints** — If you linger in a room for 3+ turns, a mysterious voice whispers cryptic hints generated by Groq, making the AI feel present and helpful.
-- **NPC encounter narration** — When the Shadow Thief enters your room, Groq generates unique atmospheric flavor text describing their appearance and actions.
-- **Optimized API usage** — AI narration only triggers on room entry (not on `look`). Static descriptions and hand-written lore handle routine interactions, keeping API consumption efficient.
-
-### World Map (20 Rooms)
-
-```
-Cave Entrance → Rocky Path → Narrow Passage → Goblin Cavern ───→ Crossroads ──→ Healing Spring
-                                                    │                 │
-                                                    │          ┌──────┼──────┬──────┐
-                                                    ▼          ▼      ▼      ▼      ▼
-                                            Ancient Vault   Armory  Lake  Library  Collapsed
-                                            (requires:           │      │         Tunnel
-                                             golden idol)        │      │           │
-                                                        Echoing Hall    Verdant    │
-                                                              │          Cavern    │
-                                                              ▼                  ▼
-                                                        Hidden Passage     Rat Tunnels
-                                                              │
-                                                              ▼
-                                                         Dragon's Lair
-                                                              │
-                                                              ▼
-                                                         Escape Tunnel
-                                                              │
-                                                              ▼
-                                                         Sunlit Valley
-                                                        (VICTORY)
-```
-
----
-
-## Future Roadmap
-
-### Multi-Agent NPCs 🎭
-Extend the agentic NPC system to support multiple independent characters with distinct personalities, goals, and dialogue trees — each powered by its own Groq agent.
-
-### RAG-based World Lore 📚
-Implement Retrieval-Augmented Generation to ground the AI narrator in a vector database of world history, item backstories, and NPC biographies — enabling deep, lore-consistent narratives.
-
-### Persistent Campaign Mode 📜
-Add session tracking that remembers player choices across runs, creating a branching narrative that unfolds over multiple play sessions.
 
 ---
 
 ## License
 
-```
 MIT License
-
 Copyright (c) 2025 Pallapothu Yegneswar Gupta
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is urnished to do so, subject to the following conditions:
+rnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.

@@ -61,8 +61,8 @@ async def main():
         sys.exit(1)
 
     world = World(world_data)
-    game = Game(world)
     narrator = AINarrator()
+    game = Game(world, groq_client=narrator.client)
 
     if not game.current_room:
         console.print("[bold red]No starting room found![/]")
@@ -104,11 +104,15 @@ async def main():
                     typing = True
                     await update_display(live, **build_kw(typing=True))
 
+                    # RAG Grounding for Room Description
+                    lore_context = game.lore_manager.get_lore_context(game.current_room.name)
+                    
                     ai_text = await narrator.generate_room_desc(
                         game.current_room.to_dict(),
                         get_player_state(game),
                         recent_actions=list(game.recent_actions),
                         npc_info=get_npc_info(game, game.current_room.name),
+                        lore_context=lore_context
                     )
                     typing = False
                     for enemy in game.current_room.enemies:
@@ -123,13 +127,14 @@ async def main():
                     hint_countdown = 5
 
                 if npc_just_entered:
+                    # In a multi-agent world, we might want to know WHICH NPC entered.
+                    # For now, placeholder for the last moving NPC.
+                    npc_name = "Someone" 
                     npc_desc = await narrator.generate_npc_encounter(
-                        NPC_NAME, game.current_room.name, get_player_state(game),
+                        npc_name, game.current_room.name, get_player_state(game),
                     )
                     if npc_desc:
                         command_log.append(f"[bold red]▸ {npc_desc}[/]")
-                    else:
-                        command_log.append(f"[bold red]▸ {NPC_NAME} slinks into the room![/]")
                     npc_just_entered = False
 
                 game.tick_effects()
@@ -190,10 +195,14 @@ async def main():
 
                 elif cmd.startswith("examine ") or cmd.startswith("exam "):
                     item = cmd[9:] if cmd.startswith("examine ") else cmd[5:]
+                    # RAG Grounding for Item Examination
+                    lore_context = game.lore_manager.get_lore_context(item)
                     lore = game.examine_item(item)
                     if narrator.client and item in game.player.inventory:
                         ai_lore = await narrator.generate_item_description(
-                            item, context=f"The player is in {game.current_room.name}.",
+                            item, 
+                            context=f"The player is in {game.current_room.name}.",
+                            lore_context=lore_context
                         )
                         if ai_lore:
                             lore += f"\n  [dim]{{The narrator adds:}}[/] [italic]{ai_lore}[/]"
@@ -211,43 +220,18 @@ async def main():
                     command_log.append(result)
                     game.add_action(f"equipped {item}")
 
-                elif cmd == "wares":
-                    room_npcs = game.get_npcs_in_room(game.current_room.name)
-                    merchant = next((n for n in room_npcs if n.role == "merchant"), None)
-                    if merchant:
-                        command_log.append(game.get_merchant_inventory())
-                    else:
-                        command_log.append("[dim]▸ No merchant here.[/]")
-
-                elif cmd.startswith("trade "):
-                    parts = cmd[6:].split(maxsplit=1)
-                    if len(parts) == 2:
-                        result = game.trade_with_npc(parts[0], parts[1])
-                        command_log.append(result)
-                        game.add_action(f"traded {parts[0]} for {parts[1]}")
-                    else:
-                        command_log.append("[yellow]▸ Usage: trade <give> <get>. Type 'wares' to see trades.[/]")
-
                 elif cmd.startswith("talk "):
-                    npc_name = cmd[5:]
-                    result = game.talk_to_npc(npc_name)
-                    if result:
-                        command_log.append(result)
-                    else:
-                        tag = game.get_npc_dialogue_tag(npc_name)
-                        dialogue = await narrator.generate_npc_dialogue(
-                            npc_name, tag or "stranger",
-                            game.current_room.name, get_player_state(game),
-                            talked_before=True,
-                        )
-                        if dialogue:
-                            command_log.append(dialogue)
-                        else:
-                            npcs = game.get_npcs_in_room(game.current_room.name)
-                            for n in npcs:
-                                if npc_name.lower() in n.name.lower():
-                                    command_log.append(f"[cyan]▸ {n.name} regards you silently.[/]")
-                                    break
+                    parts = cmd[5:].split(maxsplit=1)
+                    npc_name = parts[0]
+                    player_message = parts[1] if len(parts) > 1 else "Hello!"
+                    
+                    typing = True
+                    await update_display(live, **build_kw(typing=True))
+                    
+                    dialogue = await game.talk_to_npc(npc_name, player_message)
+                    command_log.append(dialogue)
+                    
+                    typing = False
                     game.add_action(f"talked to {npc_name}")
 
                 elif cmd in DIR_MAP:
@@ -258,8 +242,6 @@ async def main():
                         command_log.append(f"[green]▸ You move {direction}...[/]")
                         room_just_changed = True
                         show_inventory = False
-                        if npc_room == game.current_room.name:
-                            npc_just_entered = True
                     else:
                         info = game.current_room.exits.get(direction)
                         if info and info.required_item:
@@ -319,16 +301,19 @@ async def main():
                 else:
                     command_log.append(f"[red]▸ Unknown command: '{cmd}'. Type 'help' for commands.[/]")
 
+                # NPC Movement Logic
                 if game.turn_count % NPC_MOVE_INTERVAL == 0:
-                    for npc in game.npcs:
-                        if npc.behavior != "roamer":
+                    for npc_id, npc in game.npcs.items():
+                        # Simple logic for now: merchants stay put, others might roam
+                        if "merchant" in npc.goals:
                             continue
+                            
                         room_obj = world.get_room(npc.current_room)
-                        if not room_obj:
-                            continue
+                        if not room_obj: continue
+                        
                         exits = list(room_obj.exits.keys())
-                        if not exits:
-                            continue
+                        if not exits: continue
+                        
                         chosen = await narrator.move_npc(
                             npc.name, npc.current_room, exits,
                             context=f"The player is in {game.current_room.name}. ",
@@ -337,15 +322,8 @@ async def main():
                         if next_room and world.get_room(next_room):
                             was_with_player = npc.current_room == game.current_room.name
                             npc.current_room = next_room
-                            game.add_action(f"{npc.name} moved to {next_room}")
                             if npc.current_room == game.current_room.name and not was_with_player:
-                                npc_desc = await narrator.generate_npc_encounter(
-                                    npc.name, game.current_room.name, get_player_state(game),
-                                )
-                                if npc_desc:
-                                    command_log.append(f"[bold]▸ {npc_desc}[/]")
-                                else:
-                                    command_log.append(f"[bold]▸ {npc.name} enters the room![/]")
+                                npc_just_entered = True
 
                 if game.current_room.name == "Sunlit Valley":
                     game.game_over = True

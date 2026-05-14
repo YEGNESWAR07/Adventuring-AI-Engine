@@ -1,10 +1,9 @@
-import os
-from groq import Groq
-from typing import List, Dict, Any
+from groq import AsyncGroq
+from typing import List, Dict, Any, Optional
 from src.models import NPCData
 
 class NPCAgent:
-    def __init__(self, npc_data: NPCData, groq_client: Groq):
+    def __init__(self, npc_data: NPCData, groq_client: AsyncGroq):
         self.npc_data = npc_data
         self.groq_client = groq_client
         self.conversation_history: List[Dict[str, str]] = []
@@ -17,38 +16,47 @@ class NPCAgent:
             f"Your goals are: {', '.join(self.npc_data.goals)}. "
             f"Your current state is: {self.npc_data.current_state}. "
             f"Respond concisely and in character, reflecting your personality and goals. "
-            f"Do not break character or mention being an AI. Keep responses brief, like a text adventure NPC."
+            f"Do not break character or mention being an AI. Keep responses brief (1-3 sentences)."
         )
         self.conversation_history.append({"role": "system", "content": system_message})
 
-    def generate_dialogue(self, player_input: str, game_context: str) -> str:
-        # Add game context to the system message for better grounding
-        current_system_message = self.conversation_history[0]["content"]
-        if "Current game context:" not in current_system_message:
-            self.conversation_history[0]["content"] += f"\nCurrent game context: {game_context}"
-        else:
-            # Update context if it already exists
-            self.conversation_history[0]["content"] = (
-                current_system_message.split("Current game context:")[0].strip() +
-                f"\nCurrent game context: {game_context}"
-            )
+    async def generate_dialogue(self, player_input: str, game_context: str, lore_context: Optional[str] = None) -> str:
+        # Construct the context-aware prompt
+        full_context = f"Current game context: {game_context}"
+        if lore_context:
+            full_context += f"\n\n{lore_context}"
+        
+        # We don't want to keep growing the system message with context, 
+        # so we inject context as a reminder or part of the user message.
+        # For now, let's update the system message with current context.
+        base_system = (
+            f"You are {self.npc_data.name}, a {self.npc_data.personality} NPC. "
+            f"Goals: {', '.join(self.npc_data.goals)}. "
+            f"Current state: {self.npc_data.current_state}.\n"
+            f"{full_context}"
+        )
+        self.conversation_history[0]["content"] = base_system
 
         self.conversation_history.append({"role": "user", "content": player_input})
 
         try:
-            chat_completion = self.groq_client.chat.completions.create(
+            chat_completion = await self.groq_client.chat.completions.create(
                 messages=self.conversation_history,
-                model="llama3-8b-8192", # Using a suitable Groq model
+                model="llama-3.3-70b-versatile",
                 temperature=0.7,
-                max_tokens=100,
+                max_tokens=150,
             )
-            npc_response = chat_completion.choices[0].message.content
+            npc_response = chat_completion.choices[0].message.content.strip()
             self.conversation_history.append({"role": "assistant", "content": npc_response})
+            
+            # Keep history manageable
+            if len(self.conversation_history) > 10:
+                self.conversation_history = [self.conversation_history[0]] + self.conversation_history[-9:]
+                
             return npc_response
         except Exception as e:
             print(f"Error generating dialogue for {self.npc_data.name}: {e}")
-            return f"The {self.npc_data.name} seems distracted and doesn't respond."
+            return f"{self.npc_data.name} regards you with a strange look, but says nothing."
 
     def reset_conversation(self):
-        self.conversation_history = []
         self._initialize_conversation_history()

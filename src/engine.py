@@ -1,9 +1,12 @@
 import json
 import random
+import os
 from typing import Dict, List, Optional, Callable, Any
 from collections import deque
 from src.models import WorldData, RoomData, NPCData, DialogueTreeData, LoreData
-from src.lore_manager import LoreManager # Import LoreManager
+from src.lore_manager import LoreManager
+from src.npc_agent import NPCAgent
+from groq import AsyncGroq
 
 
 ITEM_LORE = {
@@ -125,7 +128,7 @@ class GameNPC:
     def __init__(self, npc_data: NPCData, current_room: str):
         self.data = npc_data
         self.current_room = current_room
-        self.talked_to = False # Track if player has talked to this NPC in current session
+        self.talked_to = False 
 
     @property
     def id(self) -> str:
@@ -175,8 +178,6 @@ class Room:
         self.items = list(data.items)
         self.enemies = list(data.enemies)
         self.exits = {k: v for k, v in data.exits.items()}
-        # NPCs in a room are now managed by the Game class, but RoomData still holds initial NPC definitions
-        # self.npcs: List[NPCData] = list(data.npcs)
 
     def add_item(self, item: str):
         self.items.append(item)
@@ -246,7 +247,7 @@ class Player:
         base = 0
         for slot, item in self.equipment.items():
             if item and item in EQUIPMENT_STATS:
-                base += 25 # Assuming all shields give 25% block
+                base += 25
         if any("shield" in i.lower() for i in self.inventory if i not in self.equipment.values()):
             base += 25
         return min(base, 75)
@@ -260,7 +261,7 @@ class Player:
         self.health = min(self.health, self.max_hp)
 
     def take_damage(self, damage: int) -> bool:
-        if damage < 0: # Healing
+        if damage < 0: 
             self.health = min(self.max_hp, self.health - damage)
             return False
         reduced = max(0, damage - self.defense_bonus)
@@ -272,18 +273,6 @@ class Player:
             return f"[red]▸ You don't have {item}.[/]"
         slot = EQUIPMENT_SLOTS.get(item)
         if not slot:
-            unhandled_equip = {"rope", "bomb", "strange mushroom", "compass", "lantern",
-                              "phoenix feather", "elven bread", "bandages", "mysterious herb",
-                              "health potion", "greater health potion", "healing salve",
-                              "torch", "map", "ancient scroll", "waterlogged scroll",
-                              "gold coin", "diamond ring", "ruby", "ancient coin",
-                              "silver chalice", "goblin tooth", "rat whisker", "dragon heart",
-                              "dragon scale", "small key", "iron key", "silver key", "crystal key",
-                              "golden idol", "ancient crown", "chainmail fragment",
-                              "gem of power", "crystal focus", "ancient talisman",
-                              "iron helm", "rusty key"}
-            if item in unhandled_equip:
-                return f"[yellow]▸ You can't equip {item}. Try using it instead.[/]"
             return f"[yellow]▸ You can't equip {item}.[/]"
 
         old = self.equipment[slot]
@@ -326,8 +315,35 @@ class World:
         return self.rooms.get(self.start_room)
 
 
+class CampaignManager:
+    def __init__(self, campaign_file: str = "data/campaign.json"):
+        self.campaign_file = campaign_file
+        self.data = self._load_campaign()
+
+    def _load_campaign(self) -> Dict[str, Any]:
+        if os.path.exists(self.campaign_file):
+            try:
+                with open(self.campaign_file, 'r') as f:
+                    return json.load(f)
+            except:
+                return {"global_flags": {}, "npc_relations": {}, "completed_quests": []}
+        return {"global_flags": {}, "npc_relations": {}, "completed_quests": []}
+
+    def save_campaign(self):
+        os.makedirs(os.path.dirname(self.campaign_file), exist_ok=True)
+        with open(self.campaign_file, 'w') as f:
+            json.dump(self.data, f, indent=4)
+
+    def set_flag(self, flag: str, value: Any):
+        self.data["global_flags"][flag] = value
+        self.save_campaign()
+
+    def get_flag(self, flag: str, default: Any = None) -> Any:
+        return self.data["global_flags"].get(flag, default)
+
+
 class Game:
-    def __init__(self, world: World):
+    def __init__(self, world: World, groq_client: Optional[AsyncGroq] = None):
         self.world = world
         self.player = Player()
         self.current_room = world.get_start_room()
@@ -338,14 +354,16 @@ class Game:
         self.turn_count = 0
         self.status_effects: Dict[str, int] = {}
         self._found_hidden: set = set()
-        self.npcs: Dict[str, GameNPC] = {} # Changed to dict for easier lookup
+        self.npcs: Dict[str, GameNPC] = {} 
+        self.npc_agents: Dict[str, NPCAgent] = {}
+        self.groq_client = groq_client
         self._initialize_npcs()
-        self.lore_manager = LoreManager(self.world.lore_entries) # Initialize LoreManager
+        self.lore_manager = LoreManager(self.world.lore_entries)
+        self.campaign_manager = CampaignManager()
         self._setup_event_handlers()
 
     def _initialize_npcs(self):
         for npc_id, npc_data in self.world.initial_npcs.items():
-            # Find the room where this NPC is initially located
             initial_room_name = None
             for room_name, room_data in self.world.rooms.items():
                 if any(n.id == npc_id for n in room_data.data.npcs):
@@ -353,8 +371,10 @@ class Game:
                     break
             if initial_room_name:
                 self.npcs[npc_id] = GameNPC(npc_data, initial_room_name)
+                if self.groq_client:
+                    self.npc_agents[npc_id] = NPCAgent(npc_data, self.groq_client)
             else:
-                print(f"Warning: NPC {npc_id} defined in WorldData but not assigned to any room.")
+                print(f"Warning: NPC {npc_id} defined but not assigned to any room.")
 
 
     def _setup_event_handlers(self):
@@ -366,6 +386,8 @@ class Game:
     def add_action(self, action: str):
         self.recent_actions.append(action)
         self.activity_log.append(action)
+        if "kill" in action or "defeat" in action:
+            self.campaign_manager.set_flag("is_violent", True)
 
     def is_playing_aggressively(self) -> bool:
         aggressive = {"attack", "hit", "kill", "strike", "fight"}
@@ -403,13 +425,6 @@ class Game:
             next_room = self.world.get_room(next_name)
             if next_room:
                 self.current_room = next_room
-                # Update NPC locations if they are set to roam
-                for npc in self.npcs.values():
-                    # This is a placeholder for more complex NPC movement logic
-                    # For now, if an NPC was in the previous room and is a 'roamer'
-                    # they might follow the player or move to an adjacent room.
-                    # This needs to be expanded for actual multi-agent behavior.
-                    pass
                 return True
         return False
 
@@ -417,6 +432,7 @@ class Game:
         if item in self.current_room.items:
             self.current_room.remove_item(item)
             self.player.add_to_inventory(item)
+            self.campaign_manager.set_flag(f"has_held_{item.replace(' ', '_')}", True)
 
     def drop_item(self, item: str):
         if item in self.player.inventory:
@@ -471,6 +487,7 @@ class Game:
         if enemy_damage >= 15 or (enemy_damage >= 10 and random.random() < 0.4):
             self.current_room.enemies.pop(0)
             enemy_defeated = True
+            self.add_action(f"defeated {enemy}")
 
         if not blocked:
             dead = self.player.take_damage(player_damage)
@@ -485,11 +502,6 @@ class Game:
             msg = f"▸ You [bold green]defeat[/] the {enemy}! It hits for [red]{player_damage}[/]."
         else:
             msg = f"▸ You strike the {enemy} for [yellow]{enemy_damage}[/]! It hits you for [red]{player_damage}[/]."
-
-        if self.is_playing_aggressively() and random.random() < 0.3:
-            extra = random.randint(2, 5)
-            self.player.take_damage(extra)
-            msg += f" Aggression leaves you open ([red]-{extra}[/])."
 
         return msg
 
@@ -509,13 +521,8 @@ class Game:
             "lantern": lambda: self._use_lantern(),
             "compass": lambda: self._use_compass(),
             "crystal focus": lambda: self._use_crystal_focus(),
-            "rusty key": lambda: "[yellow]▸ Try it on locked doors.[/]",
-            "iron key": lambda: "[yellow]▸ The iron key feels weighty with purpose.[/]",
-            "silver key": lambda: "[yellow]▸ The silver key glows faintly. It yearns for a special lock.[/]",
-            "crystal key": lambda: "[yellow]▸ The crystal key refracts light. It feels ancient and powerful.[/]",
             "strange mushroom": lambda: self._use_strange_mushroom(),
             "bomb": lambda: self._use_bomb(),
-            "rope": lambda: "[yellow]▸ The rope could help you cross gaps or climb.[/]",
         }
 
         if item in effects:
@@ -544,23 +551,16 @@ class Game:
         nearby = [n.name for n in self.get_npcs_in_room(self.current_room.name)]
         if nearby:
             return f"[cyan]▸ The compass needle steadies toward: {', '.join(nearby)}.[/]"
-        adj = []
-        for direction, exit_data in self.current_room.exits.items():
-            adj.append(exit_data.room)
-        return f"[cyan]▸ The compass needle drifts toward: {', '.join(adj[:2])}.[/]"
+        return f"[cyan]▸ The compass needle drifts aimlessly...[/]"
 
     def _use_map(self) -> str:
         self.status_effects["illuminated"] = 5
         revealed = []
         for direction, exit_data in self.current_room.exits.items():
-            target = self.world.get_room(exit_data.room)
-            if target and target.items:
-                revealed.append(f"{direction.upper()} → {exit_data.room}")
+            revealed.append(f"{direction.upper()} → {exit_data.room}")
         base = "[green]▸ You study the map. The passages become clear.[/]"
         if revealed:
             base += "\n" + "\n".join(f"  [dim]{r}[/]" for r in revealed)
-        else:
-            base += "\n  [dim]Only darkness ahead...[/]"
         return base
 
     def _use_crystal_focus(self) -> str:
@@ -571,15 +571,15 @@ class Game:
         heal = random.randint(10, 40)
         self.player.health = min(self.player.max_hp, self.player.health + heal)
         self.player.remove_from_inventory("strange mushroom")
-        return f"[magenta]▸ You eat the strange mushroom. It tastes of lightning! [+{heal} HP][/]"
+        return f"[magenta]▸ You eat the strange mushroom. [+{heal} HP][/]"
 
     def _use_bomb(self) -> str:
         self.player.remove_from_inventory("bomb")
         if self.current_room.enemies:
             names = self.current_room.enemies.copy()
             self.current_room.enemies.clear()
-            return f"[yellow]▸ BOOM! The bomb devastates the room! Defeated: {', '.join(names)}.[/]"
-        return "[yellow]▸ BOOM! Rubble falls but nothing else happens. Good thing no one was here.[/]"
+            return f"[yellow]▸ BOOM! Defeated: {', '.join(names)}.[/]"
+        return "[yellow]▸ BOOM! A loud noise, but no one was here to hear it.[/]"
 
     def examine_item(self, item: str) -> str:
         if item in self.player.inventory:
@@ -589,10 +589,10 @@ class Game:
         else:
             return f"[red]▸ You don't see {item} anywhere.[/]"
         
-        # Query LoreManager for item lore
-        relevant_lore_docs = self.lore_manager.get_relevant_lore(item, n_results=1)
-        lore_content = relevant_lore_docs[0] if relevant_lore_docs else f"A plain {item}."
-
+        lore_content = self.lore_manager.get_lore_context(item, n_results=1)
+        if not lore_content:
+            lore_content = ITEM_LORE.get(item, f"A plain {item}.")
+        
         slot = EQUIPMENT_SLOTS.get(item)
         extra = f" ({slot} slot)" if slot else ""
         return f"[cyan]▸ {item}[/][dim]{extra}[/] ([dim]{loc}[/])\n  {lore_content}"
@@ -608,7 +608,7 @@ class Game:
         items_list = ", ".join(f"[yellow]{h}[/]" for h in newly)
         return f"[green]▸ You search carefully and discover: {items_list}![/]"
 
-    def talk_to_npc(self, npc_name: str) -> Optional[str]:
+    async def talk_to_npc(self, npc_name: str, player_input: str = "Hello!") -> str:
         npcs_in_room = self.get_npcs_in_room(self.current_room.name)
         if not npcs_in_room:
             return "[dim]▸ No one here to talk to.[/]"
@@ -625,55 +625,21 @@ class Game:
         
         target_npc.talked_to = True
         self.add_action(f"talked to {target_npc.name}")
-        # This is where the Groq agent interaction will be initiated
-        # For now, it just returns a placeholder message
-        return f"[green]▸ You start a conversation with {target_npc.name}.[/]"
-
-
-    def get_npc_dialogue_tag(self, npc_name: str) -> Optional[str]:
-        # This function might become obsolete or change significantly with dialogue trees
-        for npc in self.npcs.values():
-            if npc_name.lower() in npc.name.lower():
-                return npc.dialogue_tree_id # Return the dialogue tree ID
-        return None
-
-    def trade_with_npc(self, give: str, want: str) -> str:
-        npcs_in_room = self.get_npcs_in_room(self.current_room.name)
-        # Assuming 'merchant' role is still a concept, though it will be defined in NPCData.goals
-        merchant = next((n for n in npcs_in_room if "merchant" in n.goals), None)
-        if not merchant:
-            return "[yellow]▸ No merchant here to trade with.[/]"
-        if give not in self.player.inventory:
-            return f"[red]▸ You don't have {give}.[/]"
         
-        # This trade logic will need to be moved to the NPC's dialogue tree or a dedicated trade system
-        trades = {
-            "gold coin": "health potion", "goblin tooth": "elven bread",
-            "rat whisker": "bandages", "ancient coin": "torch",
-            "ruby": "silver dagger", "diamond ring": "iron sword",
-            "silver chalice": "chainmail", "dragon scale": "ring of protection",
-            "goblin tooth": "rope", "small key": "strange mushroom",
-        }
-        if give in trades and trades[give] == want:
-            self.player.remove_from_inventory(give)
-            self.current_room.add_item(want)
-            return f"[green]▸ {merchant.name} nods. You trade {give} for {want}.[/]"
-        return (f"[yellow]▸ {merchant.name} examines your {give}. "
-                f"'Not interested. Try something else.'[/]")
-
-    def get_merchant_inventory(self) -> str:
-        # This will also need to be dynamic based on NPCData and dialogue trees
-        return ("[green]Merchant Vex's Wares:[/]\n"
-                "  [yellow]health potion[/] (trade: [dim]gold coin[/])\n"
-                "  [yellow]torch[/] (trade: [dim]ancient coin[/])\n"
-                "  [yellow]silver dagger[/] (trade: [dim]ruby[/])\n"
-                "  [yellow]iron sword[/] (trade: [dim]diamond ring[/])\n"
-                "  [yellow]chainmail[/] (trade: [dim]silver chalice[/])\n"
-                "  [yellow]ring of protection[/] (trade: [dim]dragon scale[/])\n"
-                "  [yellow]elven bread[/] (trade: [dim]goblin tooth[/])\n"
-                "  [yellow]bandages[/] (trade: [dim]rat whisker[/])\n"
-                "  [yellow]rope[/] (trade: [dim]small key[/])\n"
-                "  [yellow]strange mushroom[/] (trade: [dim]goblin tooth[/])")
+        agent = self.npc_agents.get(target_npc.id)
+        if agent:
+            game_context = f"The player is in {self.current_room.name}. "
+            game_context += f"Player health: {self.player.health}. "
+            game_context += f"Recent actions: {', '.join(self.recent_actions)}. "
+            game_context += f"Campaign status: {self.campaign_manager.data['global_flags']}. "
+            
+            lore_query = f"{target_npc.name} {self.current_room.name}"
+            lore_context = self.lore_manager.get_lore_context(lore_query)
+            
+            response = await agent.generate_dialogue(player_input, game_context, lore_context)
+            return f"[cyan]▸ {target_npc.name} says:[/] {response}"
+        
+        return f"[cyan]▸ {target_npc.name} regards you silently.[/]"
 
     def save_game(self, save_file: str = "savegame.json"):
         try:
@@ -688,15 +654,16 @@ class Game:
                     name: {"items": room.items, "enemies": room.enemies}
                     for name, room in self.world.rooms.items()
                 },
-                "npcs": [npc.to_dict() for npc in self.npcs.values()], # Save NPC states
-                "found_hidden": list(self._found_hidden), # Save found hidden items
-                "status_effects": self.status_effects, # Save status effects
+                "npcs": [npc.to_dict() for npc in self.npcs.values()],
+                "found_hidden": list(self._found_hidden),
+                "status_effects": self.status_effects,
+                "turn_count": self.turn_count,
             }
             with open(save_file, 'w') as f:
                 json.dump(state, f, indent=4)
+            self.campaign_manager.save_campaign()
         except Exception as e:
-            print(f"Error saving game: {e}") # Added error printing for debugging
-            pass
+            print(f"Error saving game: {e}")
 
     def load_game(self, save_file: str = "savegame.json"):
         try:
@@ -717,7 +684,6 @@ class Game:
             if room:
                 self.current_room = room
             
-            # Load NPC states
             for npc_state in state.get("npcs", []):
                 npc_id = npc_state["id"]
                 if npc_id in self.npcs:
@@ -727,10 +693,7 @@ class Game:
             
             self._found_hidden = set(state.get("found_hidden", []))
             self.status_effects = state.get("status_effects", {})
+            self.turn_count = state.get("turn_count", 0)
 
-        except FileNotFoundError:
-            print(f"No save file found at {save_file}. Starting new game.")
-        except json.JSONDecodeError as e:
-            print(f"Error decoding save file {save_file}: {e}. Starting new game.")
         except Exception as e:
-            print(f"Error loading game: {e}. Starting new game.")
+            print(f"Error loading game: {e}")

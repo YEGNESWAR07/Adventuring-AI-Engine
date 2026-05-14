@@ -29,6 +29,7 @@ class AINarrator:
         player_state: Dict[str, Any],
         recent_actions: Optional[List[str]] = None,
         npc_info: Optional[str] = None,
+        lore_context: Optional[str] = None,
     ) -> str:
         fallback = room_data.get("static_description") or room_data.get("description", "A dark room.")
         if not self.client:
@@ -45,7 +46,10 @@ class AINarrator:
         if enemies:
             prompt += f" Danger: {', '.join(enemies)} present!"
 
-        prompt += f" Player Health: {player_state.get('health', 100)}/100."
+        if lore_context:
+            prompt += f"\nWorld Lore to integrate: {lore_context}"
+
+        prompt += f"\nPlayer Health: {player_state.get('health', 100)}/100."
 
         if recent_actions:
             prompt += f" Recent events: {'; '.join(recent_actions)}."
@@ -71,7 +75,7 @@ class AINarrator:
                 "Darken the atmosphere—make the room feel ominous."
             )
 
-        prompt += " Describe in 2-3 vivid, sensory sentences."
+        prompt += " Describe in 2-3 vivid, sensory sentences that ground the scene in the provided lore."
 
         try:
             response = await self.client.chat.completions.create(
@@ -92,6 +96,7 @@ class AINarrator:
         self,
         item_name: str,
         context: Optional[str] = None,
+        lore_context: Optional[str] = None,
     ) -> Optional[str]:
         if not self.client:
             return None
@@ -99,8 +104,10 @@ class AINarrator:
         prompt = (
             f"Describe the item '{item_name}' in a dark fantasy text adventure game. "
             f"Use 1-2 vivid sentences. Include sensory details (sight, texture, smell). "
-            f"Give it a mysterious or ancient history.\n"
+            f"Give it a mysterious or ancient history grounded in world lore.\n"
         )
+        if lore_context:
+            prompt += f"World Lore context: {lore_context}\n"
         if context:
             prompt += f"Context: {context}\n"
 
