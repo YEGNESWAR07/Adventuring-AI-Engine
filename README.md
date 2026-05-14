@@ -1,6 +1,29 @@
-# Aura-Quest ⚡ — An Async AI-Powered Adventure Engine
+# Adventuring AI Engine ⚡
 
-> **Terminal-based interactive fiction** powered by Groq's LPU inference, Pydantic-validated world state, and a Rich real-time TUI.
+![Python](https://img.shields.io/badge/python-3.12%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+[![Groq](https://img.shields.io/badge/AI-Groq%20LPU-orange)](https://groq.com)
+![Status](https://img.shields.io/badge/status-active-brightgreen)
+![Tests](https://img.shields.io/badge/tests-144%20passing-brightgreen)
+
+> **An async AI-powered terminal-based interactive fiction engine.** Explore a vast 45-room dungeon, trade with unique NPCs, equip weapons and armor, fight dynamic turn-based combat, and uncover hidden secrets — all powered by Groq's LPU inference for real-time AI narration.
+
+**Topics:** `python` `text-adventure` `ai-game` `terminal-game` `rich-tui` `groq` `interactive-fiction` `dungeon-crawler` `async-python` `game-engine` `llm-game` `rpg-game` `cli-game` `pydantic` `asyncio`
+
+---
+
+## 📊 At a Glance
+
+| Feature | Detail |
+|---------|--------|
+| **World Size** | 45 interconnected rooms across 5 zones |
+| **NPCs** | 6 unique characters (Merchant, Oracle, Thief, Guardian, Bard, Lost Soul) |
+| **Items** | 40+ items with rarity, equipment slots (weapon/armor/accessory), and lore |
+| **Combat** | Dynamic turn-based with shield blocking, variable damage, and empowerment |
+| **AI Narration** | Groq Llama 3.3 70B for room descriptions, NPC encounters, and hints |
+| **Input** | Real-time character-by-character typing inside the UI |
+| **API Efficiency** | ~60% fewer calls than traditional approach with smarter caching |
+| **Tests** | 144 passing unit tests |
 
 ---
 
@@ -225,4 +248,26 @@ Add session tracking that remembers player choices across runs, creating a branc
 
 ## License
 
-MIT
+```
+MIT License
+
+Copyright (c) 2025 Pallapothu Yegneswar Gupta
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
