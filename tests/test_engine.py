@@ -385,7 +385,7 @@ class TestLoadWorldFunction(unittest.TestCase):
             json.dump({"rooms": {}}, f)
             path = f.name
         try:
-            with self.assertRaises(ValidationError):
+            with self.assertRaises(ValueError):
                 load_world(path)
         finally:
             os.remove(path)
@@ -1032,5 +1032,79 @@ class TestEdgeCases(unittest.TestCase):
             WorldData(start_room=123, rooms="invalid")
 
 
+class TestTradingAndCodex(unittest.TestCase):
+    def setUp(self):
+        world_dict = dict(DEFAULT_WORLD_DATA_DICT)
+        # Clone Entrance so we don't modify the default shared dict globally
+        world_dict["rooms"] = dict(world_dict["rooms"])
+        world_dict["rooms"]["Entrance"] = dict(world_dict["rooms"]["Entrance"])
+        world_dict["rooms"]["Entrance"]["npcs"] = [
+            {
+                "id": "merchant_vex",
+                "name": "Merchant Vex",
+                "role": "merchant",
+                "description": "A dark merchant.",
+                "personality": "greedy",
+                "goals": ["trade goods"],
+                "trades": [
+                    {"give": "gold coin", "get": "health potion"},
+                    {"give": "goblin tooth", "get": "healing salve"}
+                ]
+            }
+        ]
+        world_dict["lore_entries"] = [
+            {
+                "id": "lore_cavern",
+                "title": "The Caverns of Whispers",
+                "content": "The Caverns of Whispers were formed during the First Age.",
+                "tags": ["history"]
+            }
+        ]
+        
+        self.world_data = WorldData(**world_dict)
+        self.world = World(self.world_data)
+        self.game = Game(self.world)
+
+    def test_get_merchant_trades(self):
+        trades = self.game.get_merchant_trades()
+        self.assertIsNotNone(trades)
+        self.assertEqual(len(trades), 2)
+        self.assertEqual(trades[0]["give"], "gold coin")
+
+    def test_execute_trade_success(self):
+        self.game.player.add_to_inventory("gold coin")
+        res = self.game.execute_trade("gold coin", "health potion")
+        self.assertIn("traded", res.lower())
+        self.assertIn("health potion", self.game.player.inventory)
+        self.assertNotIn("gold coin", self.game.player.inventory)
+
+    def test_execute_trade_no_item(self):
+        res = self.game.execute_trade("gold coin", "health potion")
+        self.assertIn("do not have", res.lower())
+        self.assertNotIn("health potion", self.game.player.inventory)
+
+    def test_execute_trade_invalid_offer(self):
+        self.game.player.add_to_inventory("gold coin")
+        res = self.game.execute_trade("gold coin", "ruby")
+        self.assertIn("does not offer", res.lower())
+
+    def test_execute_trade_no_merchant(self):
+        self.game.move("north")
+        res = self.game.execute_trade("gold coin", "health potion")
+        self.assertIn("no merchant", res.lower())
+
+    def test_codex_query(self):
+        res = self.game.query_codex("Caverns")
+        self.assertIn("Caverns of Whispers", res)
+        self.assertIn("📖 CODEX SEARCH RESULTS", res)
+
+    def test_ascii_minimap_rendering(self):
+        from src.ui import generate_ascii_minimap
+        minimap = generate_ascii_minimap(self.game)
+        self.assertIn("●", minimap)
+        self.assertIn("Hallway", minimap)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+

@@ -147,8 +147,16 @@ class GameNPC:
         return self.data.personality
 
     @property
+    def role(self) -> str:
+        return self.data.role
+
+    @property
     def goals(self) -> List[str]:
         return self.data.goals
+
+    @property
+    def trades(self) -> List[Dict[str, str]]:
+        return self.data.trades
 
     @property
     def dialogue_tree_id(self) -> Optional[str]:
@@ -166,7 +174,9 @@ class GameNPC:
             "id": self.id,
             "current_room": self.current_room,
             "talked_to": self.talked_to,
-            "current_state": self.current_state
+            "current_state": self.current_state,
+            "role": self.role,
+            "trades": self.trades
         }
 
 
@@ -697,3 +707,58 @@ class Game:
 
         except Exception as e:
             print(f"Error loading game: {e}")
+
+    def get_merchant_trades(self) -> Optional[List[Dict[str, str]]]:
+        npcs_here = self.get_npcs_in_room(self.current_room.name)
+        for npc in npcs_here:
+            if npc.role == "merchant":
+                return npc.trades
+        return None
+
+    def execute_trade(self, give_item: str, get_item: str) -> str:
+        npcs_here = self.get_npcs_in_room(self.current_room.name)
+        merchant = None
+        for npc in npcs_here:
+            if npc.role == "merchant":
+                merchant = npc
+                break
+        if not merchant:
+            return "[red]▸ There is no merchant in this room to trade with.[/]"
+
+        trade = None
+        for t in merchant.trades:
+            if t["give"].lower() == give_item.lower() and t["get"].lower() == get_item.lower():
+                trade = t
+                break
+        if not trade:
+            return f"[yellow]▸ {merchant.name} does not offer that trade. Ask for 'wares' to see available trades.[/]"
+
+        # Check if player has the item (case-insensitive)
+        give_matches = [i for i in self.player.inventory if i.lower() == give_item.lower()]
+        if not give_matches:
+            return f"[red]▸ You do not have '{give_item}' in your inventory.[/]"
+        actual_give_item = give_matches[0]
+
+        # Unequip if equipped
+        for slot, eq_item in list(self.player.equipment.items()):
+            if eq_item and eq_item.lower() == actual_give_item.lower():
+                self.player.equipment[slot] = None
+        self.player.recalc_max_hp()
+
+        self.player.remove_from_inventory(actual_give_item)
+        self.player.add_to_inventory(trade["get"])
+        self.add_action(f"traded {actual_give_item} for {trade['get']}")
+        return f"[green]▸ You traded [yellow]{actual_give_item}[/] to {merchant.name} and received [yellow]{trade['get']}[/]![/]"
+
+    def query_codex(self, query: str) -> str:
+        self.add_action(f"queried codex for '{query}'")
+        results = self.lore_manager.search_lore(query, n_results=2)
+        if not results:
+            return f"[yellow]▸ The codex contains no entries matching '{query}'.[/]"
+        
+        output = ["[bold cyan]📖 CODEX SEARCH RESULTS:[/]\n"]
+        for res in results:
+            tags_str = f" [dim][{', '.join(res['tags'])}][/]" if res['tags'] else ""
+            output.append(f"[bold yellow]✦ {res['title']}[/]{tags_str}\n  {res['content']}\n")
+        return "\n".join(output)
+

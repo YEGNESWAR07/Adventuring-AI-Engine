@@ -20,7 +20,9 @@ WELCOME_TEXT = (
     "  [green]equip <item>[/]    Equip weapon/armor/accessory\n"
     "  [green]search[/]         Search for hidden items\n"
     "  [green]talk <npc>[/]     Talk to a character\n"
+    "  [green]wares[/]          See merchant's inventory\n"
     "  [green]trade <give> <get>[/] Trade with merchant\n"
+    "  [green]codex <query>[/]  Search the lore database\n"
     "  [green]pickup <item>[/]   Pick up an item\n"
     "  [green]drop <item>[/]     Drop an item\n"
     "  [green]attack[/]         Fight enemies\n"
@@ -41,11 +43,11 @@ def get_player_state(game: Game) -> dict:
 
 
 def get_npc_info(game: Game, player_room: str) -> str:
-    here = [n for n in game.npcs if n.current_room == player_room and n.role != "merchant"]
+    here = [n for n in game.npcs.values() if n.current_room == player_room and n.role != "merchant"]
     if here:
         names = ", ".join(n.name for n in here)
         return f"{names} {'are' if len(here) > 1 else 'is'} here with you."
-    nearby = [n for n in game.npcs if n.role != "merchant"]
+    nearby = [n for n in game.npcs.values() if n.role != "merchant"]
     if nearby:
         rooms = set(n.current_room for n in nearby)
         return f"You sense presences in: {', '.join(sorted(rooms)[:2])}."
@@ -59,7 +61,93 @@ def build_title() -> Panel:
     )
 
 
+def generate_ascii_minimap(game: Game) -> str:
+    room = game.current_room
+    if not room:
+        return "  [dim]No Map Available[/]"
+        
+    # Get exits
+    n_room = room.get_exit_room("north")
+    s_room = room.get_exit_room("south")
+    e_room = room.get_exit_room("east")
+    w_room = room.get_exit_room("west")
+    
+    # Helper to truncate and format room name
+    def fmt_room(name: Optional[str]) -> str:
+        if not name:
+            return ""
+        # Let's keep it compact, e.g. 10 chars max
+        if len(name) > 10:
+            return f"[{name[:8]}..]"
+        return f"[{name}]"
+
+    n_str = fmt_room(n_room)
+    s_str = fmt_room(s_room)
+    e_str = fmt_room(e_room)
+    w_str = fmt_room(w_room)
+
+    # Rich formatted center marker
+    current_str = "[bold green]●[/]"
+    
+    lines = []
+    
+    # Line 1: North Room
+    if n_room:
+        lines.append(f"{n_str:^28}")
+        lines.append(f"{'▲':^28}")
+        lines.append(f"{'│':^28}")
+        
+    # Line 2: West Room <--- Center ---> East Room
+    w_part = f"{w_str} ◄───" if w_room else " " * 11
+    e_part = f"───► {e_str}" if e_room else ""
+    
+    # Measure visual length excluding formatting
+    len_w = len(w_str) + 5 if w_room else 11
+    len_e = len(e_str) + 5 if e_room else 0
+    total_len = len_w + 1 + len_e
+    
+    left_padding = (28 - total_len) // 2
+    if left_padding < 0:
+        left_padding = 0
+        
+    center_line = " " * left_padding + (f"{w_str} ◄───" if w_room else " " * 11) + current_str + (f"───► {e_str}" if e_room else "")
+    lines.append(center_line)
+    
+    # Line 3: South Room
+    if s_room:
+        lines.append(f"{'│':^28}")
+        lines.append(f"{'▼':^28}")
+        lines.append(f"{s_str:^28}")
+        
+    # Diagonal exits and others
+    other_exits = []
+    for direction, exit_data in sorted(room.exits.items()):
+        if direction not in ["north", "south", "east", "west"]:
+            lock = " 🔒" if exit_data.required_item else ""
+            other_exits.append(f"  {direction.upper():<4} → {exit_data.room}{lock}")
+            
+    # Include locks for N, S, E, W exits
+    locks = []
+    for direction, exit_data in sorted(room.exits.items()):
+        if direction in ["north", "south", "east", "west"] and exit_data.required_item:
+            locks.append(f"  {direction.upper()} 🔒 requires {exit_data.required_item}")
+            
+    map_str = "\n".join(lines)
+    
+    extras = []
+    if other_exits:
+        extras.extend(other_exits)
+    if locks:
+        extras.extend(locks)
+        
+    if extras:
+        map_str += "\n\n" + "\n".join(extras)
+        
+    return map_str
+
+
 def build_stats_minimap_panel(game: Game) -> Panel:
+    from typing import Optional
     hp = game.player.health
     filled = "█" * (hp // 5)
     empty = "░" * ((100 - hp) // 5)
@@ -108,15 +196,7 @@ def build_stats_minimap_panel(game: Game) -> Panel:
         f"{effects_line}\n  Items: [bold]{inv_count}[/]{npc_status}"
     )
 
-    room = game.current_room
-    lines = []
-    for direction, exit_data in sorted(room.exits.items()):
-        dest = exit_data.room
-        lock = f" [dim]🔒[{exit_data.required_item}][/]" if exit_data.required_item else ""
-        lines.append(f"  {direction.upper():<6} → {dest}{lock}")
-    if not lines:
-        lines.append("  [dim]No exits[/]")
-    minimap = "\n".join(lines)
+    minimap = generate_ascii_minimap(game)
 
     text = f"{stats}\n\n[bold]MINI-MAP[/]\n{minimap}"
     return Panel(text, title="[bold]PLAYER STATS[/]", border_style=border)
@@ -242,8 +322,9 @@ def cmd_help() -> str:
         "[green]equip <item>[/]    — Equip weapon/armor/accessory\n"
         "[green]search[/]         — Search for hidden items\n"
         "[green]talk <npc>[/]     — Talk to a character\n"
+        "[green]wares[/]          — See merchant's wares\n"
         "[green]trade <give> <get>[/]  — Trade with merchant\n"
-        "[green]wares[/]          — See merchant's inventory\n"
+        "[green]codex <query>[/]  — Search the lore database\n"
         "[green]pickup <item>[/]  — Pick up an item\n"
         "[green]drop <item>[/]    — Drop an item\n"
         "[green]attack[/]        — Fight enemies\n"

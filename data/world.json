@@ -29,7 +29,17 @@
                 "east": {"room": "Treasure Chamber", "required_item": null},
                 "south": {"room": "Crossroads", "required_item": null},
                 "west": {"room": "Narrow Passage", "required_item": null}
-            }
+            },
+            "npcs": [
+                {
+                    "id": "thief",
+                    "name": "Shadow Thief",
+                    "role": "trickster",
+                    "description": "A shadowy figure blending in with the caverns' darkness.",
+                    "personality": "sneaky, sarcastic, elusive",
+                    "goals": ["steal precious items", "confuse the traveler"]
+                }
+            ]
         },
         "Treasure Chamber": {
             "description": "Gold and jewels spill from shattered chests. A golden idol sits on a stone pedestal.",
@@ -156,13 +166,33 @@
             "description": "Rough-hewn tunnels that descend deep into the earth.",
             "static_description": "These tunnels were carved by ancient miners who sought something precious in the depths. Rusted pickaxes and broken carts line the walls. The air grows warmer as you descend.",
             "items": ["lantern", "iron key"], "enemies": ["dark creeper"],
-            "exits": {"up": {"room": "Crossroads", "required_item": null}, "south": {"room": "Forgotten City Gates", "required_item": null}, "east": {"room": "Underground River", "required_item": null}}
+            "exits": {"up": {"room": "Crossroads", "required_item": null}, "south": {"room": "Forgotten City Gates", "required_item": null}, "east": {"room": "Underground River", "required_item": null}},
+            "npcs": [
+                {
+                    "id": "lost_soul",
+                    "name": "Lost Soul",
+                    "role": "guide",
+                    "description": "A wispy ghost floating silently above the stone floor.",
+                    "personality": "sorrowful, distant, haunting",
+                    "goals": ["warn the traveler of dangers", "find peace"]
+                }
+            ]
         },
         "Forgotten City Gates": {
             "description": "Massive stone gates mark the entrance to a lost underground city.",
             "static_description": "Twin pillars carved with scenes of a glorious civilization frame a set of enormous iron gates. They stand slightly ajar as if awaiting your arrival. Beyond them lies a city swallowed by the earth.",
             "items": [], "enemies": [],
-            "exits": {"north": {"room": "Deep Tunnels", "required_item": null}, "east": {"room": "Market Ruins", "required_item": null}, "south": {"room": "Silent Grove", "required_item": null}}
+            "exits": {"north": {"room": "Deep Tunnels", "required_item": null}, "east": {"room": "Market Ruins", "required_item": null}, "south": {"room": "Silent Grove", "required_item": null}},
+            "npcs": [
+                {
+                    "id": "kael",
+                    "name": "Guardian Kael",
+                    "role": "guardian",
+                    "description": "A stone statue humming with ancient protective magic.",
+                    "personality": "resolute, stern, duty-bound",
+                    "goals": ["guard the passage", "retrieve the ancient crown"]
+                }
+            ]
         },
         "Market Ruins": {
             "description": "The remains of an ancient marketplace. Stalls and carts are frozen in time.",
@@ -198,19 +228,57 @@
             "description": "A bustling underground market. Colorful tents line the walls.",
             "static_description": "Despite being deep underground this chamber is alive with activity. Colorful tents and stalls line the walls. A mysterious merchant sits at the center surrounded by wares from distant lands.",
             "items": [], "enemies": [],
-            "exits": {"southeast": {"room": "Crossroads", "required_item": null}, "north": {"room": "Oracle's Chamber", "required_item": null}}
+            "exits": {"southeast": {"room": "Crossroads", "required_item": null}, "north": {"room": "Oracle's Chamber", "required_item": null}},
+            "npcs": [
+                {
+                    "id": "vex",
+                    "name": "Merchant Vex",
+                    "role": "merchant",
+                    "description": "A cloaked merchant standing behind a stall of curiosities.",
+                    "personality": "shrewd, greedy, but cooperative",
+                    "goals": ["sell wares", "collect gold coins", "collect ancient coins"],
+                    "trades": [
+                        {"give": "gold coin", "get": "health potion"},
+                        {"give": "gold coin", "get": "bandages"},
+                        {"give": "gold coin", "get": "bomb"},
+                        {"give": "ancient coin", "get": "greater health potion"},
+                        {"give": "ancient coin", "get": "ring of strength"},
+                        {"give": "goblin tooth", "get": "healing salve"}
+                    ]
+                }
+            ]
         },
         "Oracle's Chamber": {
             "description": "A chamber draped in silken veils. Incense hangs thick in the air.",
             "static_description": "Silken veils of deep purple and gold drape from the ceiling, creating an intimate sacred space. Incense burns in braziers filling the air with exotic scents. A figure sits cross-legged on a cushion at the center.",
             "items": ["phoenix feather"], "enemies": [],
-            "exits": {"south": {"room": "Bazaar", "required_item": null}}
+            "exits": {"south": {"room": "Bazaar", "required_item": null}},
+            "npcs": [
+                {
+                    "id": "mira",
+                    "name": "Oracle Mira",
+                    "role": "oracle",
+                    "description": "An old woman draped in silk, staring into a swirling crystal ball.",
+                    "personality": "mysterious, cryptic, wise",
+                    "goals": ["guide lost souls", "foretell the future"]
+                }
+            ]
         },
         "Silent Grove": {
             "description": "An underground forest of pale trees that somehow thrive without sunlight.",
             "static_description": "Impossibly a grove of pale silver-barked trees grows here, their leaves glowing with soft bioluminescence. The ground is carpeted with phosphorescent moss. The silence is absolute and profound.",
             "items": ["elven bread", "mysterious herb"], "enemies": [],
-            "exits": {"north": {"room": "Forgotten City Gates", "required_item": null}}
+            "exits": {"north": {"room": "Forgotten City Gates", "required_item": null}},
+            "npcs": [
+                {
+                    "id": "lyric",
+                    "name": "Bard Lyric",
+                    "role": "bard",
+                    "description": "A young bard wearing a colorful lute on his back.",
+                    "personality": "cheerful, melodic, informative",
+                    "goals": ["sing songs", "share historical lore"]
+                }
+            ]
         },
         "Bone Pit": {
             "description": "A vast pit filled with the bones of countless creatures.",
@@ -242,5 +310,43 @@
             "items": [], "enemies": [],
             "exits": {"west": {"room": "Escape Tunnel", "required_item": null}}
         }
-    }
+    },
+    "lore_entries": [
+        {
+            "id": "lore_cavern",
+            "title": "The Caverns of Whispers",
+            "content": "The Caverns of Whispers were formed during the First Age, carved by the subterranean waters of the Styxian flow. It has served as a tomb, a refuge, and a dungeon for a thousand years.",
+            "tags": ["history", "caverns"]
+        },
+        {
+            "id": "lore_goblins",
+            "title": "The Goblin Horde",
+            "content": "The Rust-Bite Goblin Clan migrated to the upper caverns fifty years ago. They worship a golden idol they stole from the tombs of the ancient kings, believing it protects them from the dragon below.",
+            "tags": ["goblins", "factions"]
+        },
+        {
+            "id": "lore_legendary_blade",
+            "title": "The Legendary Blade",
+            "content": "The Legendary Blade is a sword forged from a fallen star. It was sealed with a magical lock that responds only to the Golden Idol.",
+            "tags": ["weapons", "artifacts"]
+        },
+        {
+            "id": "lore_dragon",
+            "title": "Vermithrax the Smoldering",
+            "content": "Vermithrax the Smoldering is an ancient wyrm of the deep earth. It nested in the lower thermal vents centuries ago, sleeping on a hoard of melted gold. Its heart is a source of pure elemental power.",
+            "tags": ["monsters", "dragon"]
+        },
+        {
+            "id": "lore_skeleton_king",
+            "title": "The Tomb and the Skeleton King",
+            "content": "The Tomb of Kings houses the sarcophagi of the obsidian dynasty. It is guarded by the Skeleton King, who still clutches the crown of black iron and silver. Only those who carry the silver key may pass into the inner sanctum.",
+            "tags": ["history", "kings"]
+        },
+        {
+            "id": "lore_bazaar",
+            "title": "The Under-Bazaar",
+            "content": "The Under-Bazaar is a neutral ground where surface dwellers, deep goblins, and shadows trade. Merchant Vex coordinates trades, always seeking gold coins and ancient relics.",
+            "tags": ["bazaar", "neutral"]
+        }
+    ]
 }

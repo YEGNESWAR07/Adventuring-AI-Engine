@@ -26,25 +26,72 @@ DIR_MAP = {
 async def read_input_char(live, **kw):
     loop = asyncio.get_event_loop()
     text = ""
-    import msvcrt
+    
+    try:
+        import msvcrt
+        is_windows = True
+    except ImportError:
+        is_windows = False
 
-    while True:
-        ch = await loop.run_in_executor(None, msvcrt.getwch)
-        if ch in ('\r', '\n'):
-            break
-        elif ch in ('\x00', '\xe0'):
-            await loop.run_in_executor(None, msvcrt.getwch)
-        elif ch == '\x08':
-            text = text[:-1]
-        elif ch == '\x03':
-            raise KeyboardInterrupt()
+    if is_windows:
+        while True:
+            ch = await loop.run_in_executor(None, msvcrt.getwch)
+            if ch in ('\r', '\n'):
+                break
+            elif ch in ('\x00', '\xe0'):
+                await loop.run_in_executor(None, msvcrt.getwch)
+            elif ch == '\x08':
+                text = text[:-1]
+            elif ch == '\x03':
+                raise KeyboardInterrupt()
+            else:
+                text += ch
+            kw['current_input'] = text
+            layout = build_layout(**kw)
+            live.update(layout)
+        return text
+    else:
+        import sys
+        try:
+            import termios
+            import tty
+            has_termios = True
+        except ImportError:
+            has_termios = False
+
+        if has_termios and sys.stdin.isatty():
+            def getch_unix():
+                fd = sys.stdin.fileno()
+                old_settings = termios.tcgetattr(fd)
+                try:
+                    tty.setraw(sys.stdin.fileno())
+                    ch = sys.stdin.read(1)
+                finally:
+                    termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+                return ch
+
+            while True:
+                ch = await loop.run_in_executor(None, getch_unix)
+                if ch in ('\r', '\n'):
+                    break
+                elif ch == '\x7f':
+                    text = text[:-1]
+                elif ch == '\x08':
+                    text = text[:-1]
+                elif ch == '\x03':
+                    raise KeyboardInterrupt()
+                else:
+                    text += ch
+                kw['current_input'] = text
+                layout = build_layout(**kw)
+                live.update(layout)
+            return text
         else:
-            text += ch
-        kw['current_input'] = text
-        layout = build_layout(**kw)
-        live.update(layout)
+            def readline_fallback():
+                return sys.stdin.readline()
 
-    return text
+            raw_line = await loop.run_in_executor(None, readline_fallback)
+            return raw_line.rstrip('\r\n')
 
 
 async def update_display(live, **kw):
@@ -192,6 +239,63 @@ async def main():
                     result = game.search_room()
                     command_log.append(result)
                     game.add_action("searched room")
+
+                elif cmd == "wares":
+                    trades = game.get_merchant_trades()
+                    if trades is None:
+                        command_log.append("[red]▸ There is no merchant in this room to show wares.[/]")
+                    elif not trades:
+                        command_log.append("[yellow]▸ The merchant has no wares for trade.[/]")
+                    else:
+                        output = ["[bold green]💰 MERCHANT WARES:[/]\n"]
+                        for t in trades:
+                            output.append(f"  Trade: [yellow]{t['give']}[/] ➔ [green]{t['get']}[/]")
+                        command_log.append("\n".join(output))
+
+                elif cmd.startswith("trade "):
+                    trade_args = cmd[6:].strip()
+                    trades = game.get_merchant_trades()
+                    if trades is None:
+                        command_log.append("[red]▸ There is no merchant in this room to trade with.[/]")
+                    elif not trade_args:
+                        command_log.append("[yellow]▸ Usage: trade <item you give> for <item you get> (e.g. trade gold coin for health potion).[/]")
+                    else:
+                        matched_trade = None
+                        for t in trades:
+                            give_lower = t["give"].lower()
+                            get_lower = t["get"].lower()
+                            separators = [" for ", " to ", " -> ", " for a ", " for an ", " "]
+                            for sep in separators:
+                                if f"{give_lower}{sep}{get_lower}" in trade_args.lower() or f"{give_lower} {get_lower}" == trade_args.lower():
+                                    matched_trade = t
+                                    break
+                            if matched_trade:
+                                break
+                        
+                        if matched_trade:
+                            result = game.execute_trade(matched_trade["give"], matched_trade["get"])
+                            command_log.append(result)
+                        else:
+                            parts = None
+                            for sep in [" for ", " to ", " -> "]:
+                                if sep in trade_args:
+                                    parts = trade_args.split(sep, 1)
+                                    break
+                            if parts and len(parts) == 2:
+                                give_item = parts[0].strip()
+                                get_item = parts[1].strip()
+                                result = game.execute_trade(give_item, get_item)
+                                command_log.append(result)
+                            else:
+                                command_log.append("[yellow]▸ Please specify: trade <item you give> for <item you get>\n  Example: trade gold coin for health potion[/]")
+
+                elif cmd.startswith("codex "):
+                    query = cmd[6:].strip()
+                    if not query:
+                        command_log.append("[yellow]▸ Usage: codex <query_text>[/]")
+                    else:
+                        result = game.query_codex(query)
+                        command_log.append(result)
 
                 elif cmd.startswith("examine ") or cmd.startswith("exam "):
                     item = cmd[9:] if cmd.startswith("examine ") else cmd[5:]

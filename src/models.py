@@ -20,10 +20,12 @@ class DialogueTreeData(BaseModel):
 class NPCData(BaseModel):
     id: str
     name: str
+    role: str = "villager" # merchant, oracle, trickster, guide, guardian, bard, etc.
     description: str
     personality: str
     goals: List[str]
     dialogue_tree_id: Optional[str] = None
+    trades: List[Dict[str, str]] = Field(default_factory=list) # List of {"give": "item", "get": "item"}
     current_state: Dict[str, Any] = Field(default_factory=dict) # For tracking NPC-specific state
 
 

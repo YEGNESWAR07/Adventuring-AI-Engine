@@ -11,26 +11,22 @@ logging.getLogger('tensorflow').setLevel(logging.ERROR)
 
 import chromadb
 from sentence_transformers import SentenceTransformer
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from src.models import LoreData
 
 class LoreManager:
     def __init__(self, lore_entries: List[LoreData], collection_name: str = "world_lore", db_path: str = "./data/lore_db"):
         self.client = chromadb.PersistentClient(path=db_path)
+        try:
+            self.client.delete_collection(name=collection_name)
+        except Exception:
+            pass
         self.collection = self.client.get_or_create_collection(name=collection_name)
         self.model = SentenceTransformer('all-MiniLM-L6-v2')
         self._initialize_lore(lore_entries)
 
     def _initialize_lore(self, lore_entries: List[LoreData]):
         if not lore_entries:
-            return
-
-        # Check if collection is already populated
-        if self.collection.count() > 0:
-            # For simplicity in this demo, we clear and re-initialize if entries change
-            # In a real app, you'd check for updates
-            print("Lore collection exists. Checking if update needed...")
-            # For now, let's just use existing if it's there
             return
 
         documents = [entry.content for entry in lore_entries]
@@ -40,13 +36,13 @@ class LoreManager:
         # Generate embeddings
         embeddings = self.model.encode(documents).tolist()
 
-        self.collection.add(
+        self.collection.upsert(
             embeddings=embeddings,
             documents=documents,
             metadatas=metadatas,
             ids=ids
         )
-        print(f"Initialized lore with {len(lore_entries)} entries.")
+        print(f"Synchronized lore DB with {len(lore_entries)} entries.")
 
     def get_relevant_lore(self, query: str, n_results: int = 3) -> List[str]:
         query_embedding = self.model.encode([query]).tolist()
@@ -66,3 +62,21 @@ class LoreManager:
         for doc in relevant_docs:
             context += f"- {doc}\n"
         return context
+
+    def search_lore(self, query: str, n_results: int = 3) -> List[Dict[str, Any]]:
+        query_embedding = self.model.encode([query]).tolist()
+        results = self.collection.query(
+            query_embeddings=query_embedding,
+            n_results=n_results,
+            include=['documents', 'metadatas']
+        )
+        output = []
+        if results.get('documents') and results.get('metadatas'):
+            for doc, meta in zip(results['documents'][0], results['metadatas'][0]):
+                output.append({
+                    "title": meta.get("title", "Unknown Title"),
+                    "content": doc,
+                    "tags": meta.get("tags", "").split(",") if meta.get("tags") else []
+                })
+        return output
+
